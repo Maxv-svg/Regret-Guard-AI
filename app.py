@@ -209,7 +209,7 @@ if "current_item" not in st.session_state:
     # Simulated e‑commerce checkout item
     st.session_state.current_item = {
         "name": "ASOS • Oversized hoodie",
-        "emoji": "🧥",
+        "emoji": "",
         "category_risk": 0.30,
         "suggested_price": 89.0,
     }
@@ -316,7 +316,7 @@ elif st.session_state.ui_state == "payment_input":
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<div class='step-title'>{item['emoji']} {item['name']}</div>",
+        f"<div class='step-title' style='font-size:20px;'>{item['name']}</div>",
         unsafe_allow_html=True,
     )
 
@@ -346,11 +346,11 @@ elif st.session_state.ui_state == "payment_input":
 
         st.markdown('<div class="context-panel">', unsafe_allow_html=True)
         mood = st.select_slider(
-            "🙂 Mood right now (1 = low, 10 = great)", options=range(1, 11), value=5
+            "Mood right now (1 = low, 10 = great)", options=range(1, 11), value=5
         )
-        sleep = st.slider("😴 Sleep last night (hours)", 3.0, 11.0, 7.0)
+        sleep = st.slider("Sleep last night (hours)", 3.0, 11.0, 7.0)
         risk = st.select_slider(
-            "⚠️ Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
+            "Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
         )
         st.markdown(
             "<p style='margin-top:10px; margin-bottom:2px; color:#f9fafb; font-size:13px; font-weight:500;'>"
@@ -368,7 +368,7 @@ elif st.session_state.ui_state == "payment_input":
     with primary_col:
         run_clicked = st.button("Run Regret Guard check", type="primary")
     with back_col:
-        back_clicked = st.button("← Back to account")
+        back_clicked = st.button("← Back")
     st.markdown("</div>", unsafe_allow_html=True)
 
     if run_clicked:
