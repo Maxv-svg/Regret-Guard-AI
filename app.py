@@ -322,15 +322,13 @@ elif st.session_state.ui_state == "payment_input":
 
     with st.container():
         st.markdown('<div class="rev-card">', unsafe_allow_html=True)
-        price = st.slider(
+        price = st.number_input(
             "Amount at checkout (€)",
-            min_value=0.0,
-            max_value=500.0,
             value=float(item["suggested_price"]),
             step=5.0,
         )
         st.markdown(
-            "<p style='font-size:13px; color:#e5e7eb; margin-top:2px;'>"
+            "<p style='font-size:13px; color:#e5e7eb; margin-top:-2px;'>"
             "Before Revolut sends this money, Regret Guard runs a quick behavioral check."
             "</p>",
             unsafe_allow_html=True,
@@ -354,24 +352,16 @@ elif st.session_state.ui_state == "payment_input":
         risk = st.select_slider(
             "Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
         )
-        st.markdown(
-            "<p style='margin-top:10px; margin-bottom:2px; color:#f9fafb; font-size:14px; font-weight:500;'>"
-            "This feels like a limited‑time deal / flash sale"
-            "</p>",
-            unsafe_allow_html=True,
-        )
-        fomo = st.toggle("", label_visibility="collapsed")
+        fomo = st.toggle("This feels like a limited‑time deal / flash sale")
         st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Primary call to action: run the AI check
     st.markdown('<div class="primary-cta">', unsafe_allow_html=True)
-    primary_col, back_col = st.columns([2, 1])
-    with primary_col:
-        run_clicked = st.button("Run Regret Guard check", type="primary")
-    with back_col:
-        back_clicked = st.button("← Back")
+    run_clicked = st.button("Run Regret Guard check", type="primary", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
+
+    back_clicked = st.button("← Back", key="back_from_checkout")
 
     if run_clicked:
         with st.spinner("Analyzing your situation with the AI model..."):
