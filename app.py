@@ -84,14 +84,14 @@ st.markdown("""
 
     /* Step labels for the 3-step flow */
     .step-label {
-        font-size: 11px;
+        font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 0.12em;
         color: #a5b4fc;
         margin-bottom: 3px;
     }
     .step-title {
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 600;
         color: #f9fafb;
         margin-bottom: 4px;
@@ -316,19 +316,20 @@ elif st.session_state.ui_state == "payment_input":
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<div class='step-title' style='font-size:20px;'>{item['name']}</div>",
+        f"<div class='step-title'>{item['name']}</div>",
         unsafe_allow_html=True,
     )
 
     with st.container():
         st.markdown('<div class="rev-card">', unsafe_allow_html=True)
-        price = st.number_input(
-            "Amount at checkout (€)",
-            value=float(item["suggested_price"]),
-            step=5.0,
+        price = float(item["suggested_price"])
+        st.markdown(
+            f"<p style='font-size:13px; color:#e5e7eb; margin-bottom:0;'>Amount at checkout</p>"
+            f"<p style='font-size:20px; font-weight:600; margin-top:2px;'>€ {price:.2f}</p>",
+            unsafe_allow_html=True,
         )
         st.markdown(
-            "<p style='font-size:13px; color:#e5e7eb; margin-top:-2px;'>"
+            "<p style='font-size:13px; color:#e5e7eb; margin-top:4px;'>"
             "Before Revolut sends this money, Regret Guard runs a quick behavioral check."
             "</p>",
             unsafe_allow_html=True,
@@ -336,11 +337,11 @@ elif st.session_state.ui_state == "payment_input":
 
         st.divider()
         st.markdown(
-            "<div class='step-label' style='margin-bottom:2px;'>Step 1 · Your current state</div>",
+            "<div class='step-label' style='margin-bottom:2px;'>Step 2 · Your current state</div>",
             unsafe_allow_html=True,
         )
         st.markdown(
-            "<div class='step-title' style='font-size:16px; margin-bottom:4px;'>How you feel now shapes the AI decision</div>",
+            "<div class='step-title' style='font-size:18px; margin-bottom:4px;'>How you feel now shapes the AI decision</div>",
             unsafe_allow_html=True,
         )
 
