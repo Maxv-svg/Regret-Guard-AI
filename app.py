@@ -11,8 +11,9 @@ st.markdown("""
     /* Global app background and font */
     .stApp {
         background: radial-gradient(circle at top, #1e1e2e 0, #050509 50%, #000000 100%);
-        color: #FFFFFF;
+        color: #f5f5f7;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        font-size: 14px;
     }
 
     /* Hide Streamlit default chrome */
@@ -136,12 +137,13 @@ st.markdown("""
 
     /* AI Risk Alert block */
     .ai-alert {
-        background: linear-gradient(135deg, #2b1114 0%, #1c1c1e 40%, #111111 100%);
+        background: linear-gradient(135deg, #2b1114 0%, #19191d 40%, #0d0d10 100%);
         border-left: 4px solid #FF4B4B;
-        padding: 16px 16px 14px 16px;
-        border-radius: 16px;
-        margin: 16px 0 8px 0;
+        padding: 14px 14px 12px 14px;
+        border-radius: 14px;
+        margin: 14px 0 6px 0;
         font-size: 13px;
+        line-height: 1.4;
     }
 
     /* Bottom nav mimicking Revolut */
@@ -205,9 +207,9 @@ if st.session_state.ui_state == "home":
     st.markdown(
         """
         <div class="rev-card">
-            <p style="color: #8E8E93; font-size: 12px; margin-bottom: 2px;">Main Account • EUR</p>
-            <h1 style="font-size: 40px; margin: 0 0 4px 0;">€ 2,840.50</h1>
-            <p style="color:#4ade80; font-size:12px; margin:0;">Regret Guard is <b>on</b> for online checkouts</p>
+            <p style="color: #8E8E93; font-size: 11px; margin-bottom: 1px;">Main account • EUR</p>
+            <h1 style="font-size: 32px; margin: 0 0 2px 0;">€ 2,840.50</h1>
+            <p style="color:#4ade80; font-size:11px; margin:0;">Regret Guard is <b>on</b> for online checkouts</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -273,11 +275,11 @@ elif st.session_state.ui_state == "payment_input":
     item = st.session_state.current_item
 
     st.markdown(
-        "<p style='font-size:14px; color:#8E8E93; margin-bottom:4px;'>Step 1 · Verify this purchase</p>",
+        "<p style='font-size:13px; color:#9e9ea4; margin-bottom:2px;'>Step 1 · Verify this purchase</p>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<h3 style='margin-top:0; margin-bottom:8px;'>{item['emoji']} {item['name']}</h3>",
+        f"<h3 style='margin-top:0; margin-bottom:4px; font-size:18px;'>{item['emoji']} {item['name']}</h3>",
         unsafe_allow_html=True,
     )
 
@@ -289,14 +291,17 @@ elif st.session_state.ui_state == "payment_input":
             step=5.0,
         )
         st.markdown(
-            "<p style='font-size:12px; color:#8E8E93; margin-top:-4px;'>"
+            "<p style='font-size:11px; color:#a0a0aa; margin-top:-4px;'>"
             "Before Revolut sends this money, Regret Guard runs a quick behavioral check."
             "</p>",
             unsafe_allow_html=True,
         )
 
         st.divider()
-        st.caption("How are you right now? (this shapes the AI's decision)")
+        st.markdown(
+            "<p style='font-size:11px; color:#a0a0aa; margin-bottom:4px;'>How you feel now shapes the AI decision:</p>",
+            unsafe_allow_html=True,
+        )
         mood = st.select_slider(
             "Current mood (1 = low, 10 = great)", options=range(1, 11), value=5
         )
@@ -337,24 +342,24 @@ elif st.session_state.ui_state == "ai_evaluator":
     item = st.session_state.current_item
 
     st.markdown(
-        "<p style='font-size:14px; color:#8E8E93; margin-bottom:4px;'>Step 2 · AI evaluates your decision</p>",
+        "<p style='font-size:13px; color:#9e9ea4; margin-bottom:2px;'>Step 2 · AI evaluates your decision</p>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<h3 style='margin-top:0; margin-bottom:8px;'>Regret risk for {item['emoji']} {item['name']}</h3>",
+        f"<h3 style='margin-top:0; margin-bottom:4px; font-size:18px;'>Regret risk for {item['emoji']} {item['name']}</h3>",
         unsafe_allow_html=True,
     )
 
     st.markdown(
         f"""
         <div class="rev-card" style="border: 2px solid {'#FF4B4B' if score > 60 else '#22c55e'}">
-            <p style="text-align:center; color:#8E8E93; font-size:13px; margin-bottom:6px;">
+            <p style="text-align:center; color:#9e9ea4; font-size:12px; margin-bottom:4px;">
                 For this simulated payment of <b>€{st.session_state.last_price:.2f}</b>
             </p>
             <h1 style="text-align:center; font-size: 56px; margin: 0; color:{'#FF4B4B' if score > 60 else '#22c55e'};">
                 {score:.1f}%
             </h1>
-            <p style="text-align:center; color:#8E8E93; font-size:12px; margin-top:4px;">
+            <p style="text-align:center; color:#9e9ea4; font-size:11px; margin-top:2px;">
                 chance that you'll regret this purchase later, based on your past data
             </p>
         </div>
