@@ -325,8 +325,8 @@ elif st.session_state.ui_state == "payment_input":
     with st.container():
         price = float(item["suggested_price"])
         st.markdown(
-            f"<p style='font-size:13px; color:#e5e7eb; margin-bottom:0;'>Amount at checkout</p>"
-            f"<p style='font-size:20px; font-weight:600; margin-top:2px;'>€ {price:.2f}</p>",
+            f"<p style='font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:#a5b4fc; margin-bottom:0;'>Amount at checkout</p>"
+            f"<p style='font-size:26px; font-weight:700; margin-top:2px; color:#f9fafb;'>€ {price:.2f}</p>",
             unsafe_allow_html=True,
         )
         st.markdown(
