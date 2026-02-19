@@ -408,13 +408,36 @@ elif st.session_state.ui_state == "ai_evaluator":
         unsafe_allow_html=True,
     )
 
+    # Risk bands: 0–20 low (green), 20–40 medium (yellow), >40 high (red)
+    if score <= 20:
+        band_color = "#22c55e"
+        headline_text = "Low regret risk."
+        explanation = (
+            "This purchase looks consistent with your usual behavior and financial buffer. "
+            "You can safely complete it or still stop the transaction if you prefer a pause."
+        )
+    elif score <= 40:
+        band_color = "#eab308"
+        headline_text = "Medium regret risk."
+        explanation = (
+            "This purchase is borderline for your usual behavior. If you are unsure, consider stopping "
+            "the transaction and revisiting it later."
+        )
+    else:
+        band_color = "#ef4444"
+        headline_text = "High regret risk."
+        explanation = (
+            "Your current mood, recent sleep and FOMO pattern look similar to past purchases that you later regretted. "
+            "Regret Guard recommends waiting before buying."
+        )
+
     st.markdown(
         f"""
-        <div class="rev-card" style="border: 2px solid {'#FF4B4B' if score > 60 else '#22c55e'}">
+        <div class="rev-card" style="border: 2px solid {band_color};">
             <p style="text-align:center; color:#9e9ea4; font-size:12px; margin-bottom:4px;">
                 For this simulated payment of <b>€{st.session_state.last_price:.2f}</b>
             </p>
-            <h1 style="text-align:center; font-size: 56px; margin: 0; color:{'#FF4B4B' if score > 60 else '#22c55e'};">
+            <h1 style="text-align:center; font-size: 56px; margin: 0; color:{band_color};">
                 {score:.1f}%
             </h1>
             <p style="text-align:center; color:#9e9ea4; font-size:11px; margin-top:2px;">
@@ -425,34 +448,20 @@ elif st.session_state.ui_state == "ai_evaluator":
         unsafe_allow_html=True,
     )
 
-    if score > 60:
-        st.markdown(
-            f"""
-            <div class="ai-alert">
-                <b>High emotional risk detected.</b><br/>
-                Your current mood, recent sleep and FOMO pattern look similar to past purchases
-                that you later regretted. Regret Guard recommends <b>waiting</b> before buying.<br/><br/>
-                <span style="font-size:12px; color:#e5e7eb;">
-                The model is mainly reacting to: <b>{top_features}</b>.
-                </span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f"""
-            <div class="ai-alert" style="border-left-color:#22c55e; background:linear-gradient(135deg,#102318 0%,#111111 60%);">
-                <b>Low regret risk.</b><br/>
-                This purchase looks consistent with your usual behavior and financial buffer.
-                You can safely complete it, or still park it in the Cooling Vault if you prefer a pause.<br/><br/>
-                <span style="font-size:12px; color:#e5e7eb;">
+    st.markdown(
+        f"""
+        <div class="ai-alert" style="border-left-color:{band_color};">
+            <p style="margin:0 0 4px 0;"><b>{headline_text}</b></p>
+            <p style="margin:0 0 4px 0; font-size:13px;">
+                {explanation}
+            </p>
+            <p style="margin:0; font-size:13px;">
                 The model pays most attention to: <b>{top_features}</b> for this decision.
-                </span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Explicit decision: Continue vs move to vault, regardless of risk level
     st.markdown(
