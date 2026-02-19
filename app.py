@@ -434,13 +434,13 @@ elif st.session_state.ui_state == "ai_evaluator":
     st.markdown(
         f"""
         <div class="rev-card" style="border: 2px solid {band_color};">
-            <p style="text-align:center; color:#9e9ea4; font-size:12px; margin-bottom:4px;">
+            <p style="text-align:center; color:#f9fafb; font-size:13px; margin-bottom:4px;">
                 For this simulated payment of <b>€{st.session_state.last_price:.2f}</b>
             </p>
             <h1 style="text-align:center; font-size: 56px; margin: 0; color:{band_color};">
                 {score:.1f}%
             </h1>
-            <p style="text-align:center; color:#9e9ea4; font-size:11px; margin-top:2px;">
+            <p style="text-align:center; color:#f9fafb; font-size:13px; margin-top:2px;">
                 chance that you'll regret this purchase later, based on your past data
             </p>
         </div>
