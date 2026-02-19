@@ -18,8 +18,8 @@ st.markdown("""
 
     /* Form field labels (sliders, inputs, etc.) */
     .stApp label {
-        color: #e5e7eb !important;
-        font-size: 12px;
+        color: #f9fafb !important;
+        font-size: 13px;
         font-weight: 500;
     }
 
@@ -95,19 +95,29 @@ st.markdown("""
     /* Action buttons (primary) */
     .stButton>button {
         border-radius: 16px;
-        height: 3.2em;
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+        height: 3.0em;
+        background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 60%, #111827 100%);
         color: #ffffff;
         border: none;
         font-weight: 600;
-        letter-spacing: 0.2px;
-        font-size: 14px;
-        transition: all 0.22s ease;
+        letter-spacing: 0.1px;
+        font-size: 13px;
+        transition: all 0.16s ease;
+        box-shadow: none;
     }
     .stButton>button:hover {
-        filter: brightness(1.08);
-        transform: translateY(-1px);
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.55);
+        filter: brightness(1.05);
+        transform: translateY(-0.5px);
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.6);
+    }
+
+    /* Primary CTA in checkout screen */
+    .primary-cta .stButton>button {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 45%, #166534 100%);
+    }
+    .primary-cta .stButton>button:hover {
+        filter: brightness(1.04);
+        box-shadow: 0 6px 18px rgba(22, 163, 74, 0.55);
     }
 
     /* Ghost / secondary buttons */
