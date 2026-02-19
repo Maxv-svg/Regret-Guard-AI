@@ -82,6 +82,21 @@ st.markdown("""
         color: #d0e0ff;
     }
 
+    /* Step labels for the 3-step flow */
+    .step-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #a5b4fc;
+        margin-bottom: 3px;
+    }
+    .step-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #f9fafb;
+        margin-bottom: 4px;
+    }
+
     /* Revolut-style balance card */
     .rev-card {
         background: radial-gradient(circle at top left, #26263a 0%, #111118 35%, #050509 100%);
@@ -284,11 +299,11 @@ elif st.session_state.ui_state == "payment_input":
     item = st.session_state.current_item
 
     st.markdown(
-        "<p style='font-size:13px; color:#9e9ea4; margin-bottom:2px;'>Step 1 · Verify this purchase</p>",
+        "<div class='step-label'>Step 1 · Checkout details</div>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<h3 style='margin-top:0; margin-bottom:4px; font-size:18px;'>{item['emoji']} {item['name']}</h3>",
+        f"<div class='step-title'>{item['emoji']} {item['name']}</div>",
         unsafe_allow_html=True,
     )
 
@@ -358,11 +373,11 @@ elif st.session_state.ui_state == "ai_evaluator":
     item = st.session_state.current_item
 
     st.markdown(
-        "<p style='font-size:13px; color:#9e9ea4; margin-bottom:2px;'>Step 2 · AI evaluates your decision</p>",
+        "<div class='step-label'>Step 2 · AI review</div>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<h3 style='margin-top:0; margin-bottom:4px; font-size:18px;'>Regret risk for {item['emoji']} {item['name']}</h3>",
+        f"<div class='step-title'>Regret risk for {item['emoji']} {item['name']}</div>",
         unsafe_allow_html=True,
     )
 
@@ -410,7 +425,10 @@ elif st.session_state.ui_state == "ai_evaluator":
     st.bar_chart(pd.Series(model.feature_importances_, index=features))
 
     # Explicit decision: Continue vs move to vault, regardless of risk level
-    st.markdown("**Step 3 · What do you want to do?**")
+    st.markdown(
+        "<div class='step-label'>Step 3 · Your decision</div>",
+        unsafe_allow_html=True,
+    )
     primary_col, secondary_col = st.columns(2)
 
     with primary_col:
