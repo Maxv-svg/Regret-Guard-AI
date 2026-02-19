@@ -178,13 +178,13 @@ st.markdown("""
         line-height: 1.4;
     }
 
-    /* Context panel for "How you feel" section */
+    /* Context panel for "How you feel" section (visual container turned off to avoid pill bar) */
     .context-panel {
-        margin-top: 6px;
-        padding: 12px 14px 10px 14px;
-        border-radius: 16px;
-        background: radial-gradient(circle at top left, #101827 0%, #020617 60%, #020617 100%);
-        border: 1px solid rgba(129, 140, 248, 0.55);
+        margin-top: 4px;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
     }
 
     /* Bottom nav was removed for a cleaner layout */
