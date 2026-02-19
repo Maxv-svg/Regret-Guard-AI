@@ -231,7 +231,9 @@ if st.session_state.ui_state == "home":
     st.markdown(
         """
         <div class="rev-card">
-            <p style="color: #8E8E93; font-size: 11px; margin-bottom: 1px;">Main account • EUR</p>
+            <p style="font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:#a5b4fc; margin-bottom:4px;">
+                Main account • EUR
+            </p>
             <h1 style="font-size: 32px; margin: 0 0 2px 0;">€ 2,840.50</h1>
             <p style="color:#4ade80; font-size:11px; margin:0;">Regret Guard is <b>on</b> for online checkouts</p>
         </div>
@@ -325,7 +327,7 @@ elif st.session_state.ui_state == "payment_input":
 
         st.divider()
         st.markdown(
-            "<p style='font-size:12px; color:#e5e7eb; margin-bottom:4px;'>How you feel now shapes the AI decision:</p>",
+            "<div class='step-label' style='margin-bottom:6px;'>How you feel now shapes the AI decision</div>",
             unsafe_allow_html=True,
         )
         mood = st.select_slider(
@@ -335,7 +337,13 @@ elif st.session_state.ui_state == "payment_input":
         risk = st.select_slider(
             "Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
         )
-        fomo = st.toggle("This feels like a limited‑time deal / flash sale")
+        st.markdown(
+            "<p style='margin-top:8px; margin-bottom:2px; color:#f9fafb; font-size:13px; font-weight:500;'>"
+            "This feels like a limited‑time deal / flash sale"
+            "</p>",
+            unsafe_allow_html=True,
+        )
+        fomo = st.toggle("", label_visibility="collapsed")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Primary call to action: run the AI check
