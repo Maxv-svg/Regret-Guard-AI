@@ -6,8 +6,8 @@ from sklearn.metrics import mean_absolute_error
 import joblib
 import os
 
-# 1. Advanced Synthetic Data Generation
-def generate_data(n=3000):
+# 1. Advanced Synthetic Data Generation with Feature Engineering
+def generate_data(n=4000):
     np.random.seed(42)
     data = {
         'price': np.random.uniform(10, 1000, n),
@@ -15,40 +15,46 @@ def generate_data(n=3000):
         'mood_score': np.random.randint(1, 11, n),
         'is_limited_offer': np.random.choice([0, 1], n),
         'sleep_hours': np.random.uniform(3, 11, n),
-        'merchant_return_rate': np.random.uniform(0.02, 0.45, n)
+        'merchant_risk_score': np.random.uniform(0.05, 0.50, n) # Category/Merchant return history
     }
     df = pd.DataFrame(data)
     
-    # Complex non-linear logic for Regret
-    # Higher financial stress if price is a large chunk of balance
-    financial_stress = (df['price'] / df['account_balance']) * 45
+    # --- FEATURE ENGINEERING ---
+    # Feature 1: Relative Price (Impact on wallet)
+    df['relative_price'] = df['price'] / df['account_balance']
     
-    df['regret_score'] = (
-        financial_stress + 
-        (df['merchant_return_rate'] * 25) +
-        (11 - df['mood_score']) * 4 + 
-        (10 - df['sleep_hours']) * 2 +
-        (df['is_limited_offer'] * 15)
+    # Feature 2: Impulsivity Index (Psychological state)
+    # Higher score = more impulsive (weighted by lack of sleep, low mood, and FOMO)
+    df['impulsivity_index'] = (
+        (11 - df['mood_score']) * 0.4 + 
+        (11 - df['sleep_hours']) * 0.4 + 
+        (df['is_limited_offer'] * 2)
     )
     
-    # Add noise and clip to 0-100
-    df['regret_score'] = df['regret_score'].clip(0, 100) + np.random.normal(0, 3, n)
+    # Target Logic: Ground Truth for Regret Score
+    df['regret_score'] = (
+        (df['relative_price'] * 100) + 
+        (df['merchant_risk_score'] * 40) + 
+        (df['impulsivity_index'] * 5)
+    )
+    
+    df['regret_score'] = df['regret_score'].clip(0, 100) + np.random.normal(0, 2, n)
     return df
 
-# 2. Training Pipeline
+# 2. Pipeline and Accuracy Check
 df = generate_data()
 X = df.drop('regret_score', axis=1)
 y = df['regret_score']
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X_train, y_train)
 
-# 3. Accuracy Check (Important for grading!)
+# Calculate Accuracy (MAE)
 mae = mean_absolute_error(y_test, model.predict(X_test))
-print(f"Model trained. Mean Absolute Error: {mae:.2f}")
 
-# 4. Export Bundle (Model + Metadata)
+# 3. Export Bundle
 if not os.path.exists('data'): os.makedirs('data')
 bundle = {
     'model': model,
@@ -56,4 +62,4 @@ bundle = {
     'mae': mae
 }
 joblib.dump(bundle, 'data/regret_bundle.pkl')
-print("Advanced model bundle saved.")
+print(f"Model Bundle Exported. MAE: {mae:.2f}")
