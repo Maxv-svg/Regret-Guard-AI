@@ -154,6 +154,24 @@ st.markdown("""
         border-top: 1px solid rgba(39, 39, 57, 0.85);
         font-size: 11px;
         color: #8E8E93;
+        display: flex;
+        gap: 10px;
+    }
+    .bottom-nav .stButton>button {
+        width: 100%;
+        height: 2.6em;
+        border-radius: 999px;
+        background: rgba(34, 34, 42, 0.9);
+        border: 1px solid rgba(80, 80, 96, 0.9);
+        box-shadow: none;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .bottom-nav .stButton>button:hover {
+        background: rgba(55, 65, 81, 1);
+        border-color: rgba(129, 140, 248, 1);
+        box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.6);
+        transform: none;
     }
 
     </style>
@@ -447,6 +465,7 @@ elif st.session_state.ui_state == 'vault':
         st.rerun()
 
 # Bottom nav always visible inside phone shell to mimic mobile app
+st.markdown('<div class="bottom-nav">', unsafe_allow_html=True)
 nav_home, nav_vault = st.columns(2)
 with nav_home:
     if st.button("🏠 Home", key="nav_home"):
@@ -456,5 +475,6 @@ with nav_vault:
     if st.button("🛡️ Vault", key="nav_vault"):
         st.session_state.ui_state = "vault"
         st.rerun()
+st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("</div>", unsafe_allow_html=True)
