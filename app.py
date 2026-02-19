@@ -322,13 +322,15 @@ elif st.session_state.ui_state == "payment_input":
 
     with st.container():
         st.markdown('<div class="rev-card">', unsafe_allow_html=True)
-        price = st.number_input(
+        price = st.slider(
             "Amount at checkout (€)",
+            min_value=0.0,
+            max_value=500.0,
             value=float(item["suggested_price"]),
             step=5.0,
         )
         st.markdown(
-            "<p style='font-size:12px; color:#e5e7eb; margin-top:-2px;'>"
+            "<p style='font-size:13px; color:#e5e7eb; margin-top:2px;'>"
             "Before Revolut sends this money, Regret Guard runs a quick behavioral check."
             "</p>",
             unsafe_allow_html=True,
@@ -353,8 +355,8 @@ elif st.session_state.ui_state == "payment_input":
             "Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
         )
         st.markdown(
-            "<p style='margin-top:10px; margin-bottom:2px; color:#f9fafb; font-size:13px; font-weight:500;'>"
-            "🔥 This feels like a limited‑time deal / flash sale"
+            "<p style='margin-top:10px; margin-bottom:2px; color:#f9fafb; font-size:14px; font-weight:500;'>"
+            "This feels like a limited‑time deal / flash sale"
             "</p>",
             unsafe_allow_html=True,
         )
