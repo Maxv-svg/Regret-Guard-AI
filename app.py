@@ -89,12 +89,14 @@ st.markdown("""
         letter-spacing: 0.12em;
         color: #a5b4fc;
         margin-bottom: 3px;
+        text-align: left;
     }
     .step-title {
         font-size: 20px;
         font-weight: 600;
         color: #f9fafb;
         margin-bottom: 4px;
+        text-align: left;
     }
 
     /* Revolut-style balance card */
@@ -353,7 +355,13 @@ elif st.session_state.ui_state == "payment_input":
         risk = st.select_slider(
             "Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
         )
-        fomo = st.toggle("This feels like a limited‑time deal / flash sale")
+        st.markdown(
+            "<p style='margin-top:10px; margin-bottom:2px; color:#f9fafb; font-size:14px; font-weight:600;'>"
+            "This feels like a limited‑time deal / flash sale"
+            "</p>",
+            unsafe_allow_html=True,
+        )
+        fomo = st.toggle("", label_visibility="collapsed")
 
     # Primary call to action: run the AI check
     st.markdown('<div class="primary-cta">', unsafe_allow_html=True)
