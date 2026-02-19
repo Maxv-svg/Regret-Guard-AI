@@ -505,20 +505,15 @@ elif st.session_state.ui_state == "success":
     bg = "#0f172a" if action == "bought" else "#111827"
     border = "#22c55e" if action == "bought" else "#38bdf8"
     headline = "Payment completed" if action == "bought" else "Moved to Cooling Vault"
-    subtitle = (
-        "In a real Revolut account, this money would have left your balance."
-        if action == "bought"
-        else "You pressed pause. In the real app, we’d remind you in 24 hours."
-    )
-
     st.markdown(
         f"""
         <div style="background:{bg}; border-radius:20px; padding:16px 18px; border:1px solid {border}; margin-bottom:12px;">
             <p style="font-size:15px; font-weight:600; margin:0 0 4px 0;">{headline}</p>
-            <p style="font-size:13px; margin:0 0 8px 0;">{subtitle}</p>
+            <p style="font-size:22px; font-weight:700; text-align:center; margin:4px 0 10px 0;">
+                -{outcome.get("amount","€ 89.00")}
+            </p>
             <p style="font-size:13px; margin:0;">
                 <b>Item:</b> {outcome.get("item","ASOS • Oversized hoodie")}<br/>
-                <b>Amount:</b> {outcome.get("amount","€ 89.00")}<br/>
                 <b>Regret risk at decision time:</b> {outcome.get("risk","--")}
             </p>
         </div>
