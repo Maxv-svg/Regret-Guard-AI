@@ -3,125 +3,104 @@ import joblib
 import pandas as pd
 import time
 
-# 1. PAGE CONFIG & PREMIUM STYLING
-st.set_page_config(page_title="Revolut", layout="wide", initial_sidebar_state="collapsed")
+# --- 1. PREMIUM REVOLUT STYLING ---
+st.set_page_config(page_title="Revolut Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# Custom CSS for Revolut Dark Mode
 st.markdown("""
     <style>
-    .main { background-color: #000000; color: #FFFFFF; }
-    .stButton>button { border-radius: 12px; height: 3.5em; background-color: #0666EB; color: white; border: none; font-weight: bold; width: 100%; }
-    .revolut-card { background-color: #1c1c1e; padding: 25px; border-radius: 20px; border: 1px solid #2c2c2e; margin-bottom: 20px; }
-    .stMetric { background-color: #1c1c1e; padding: 15px; border-radius: 15px; border: 1px solid #2c2c2e; }
-    div[data-testid="stExpander"] { border: none !important; }
+    .main { background-color: #000000; color: #FFFFFF; font-family: 'Inter', sans-serif; }
+    .stButton>button { border-radius: 25px; height: 3.5em; background: linear-gradient(90deg, #0666EB 0%, #0047AB 100%); color: white; border: none; font-weight: 700; width: 100%; }
+    .revolut-card { background-color: #1c1c1e; padding: 25px; border-radius: 24px; border: 1px solid #2c2c2e; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .metric-box { background-color: #1c1c1e; padding: 20px; border-radius: 18px; border: 1px solid #3a3a3c; text-align: center; }
+    h1, h2, h3 { color: #FFFFFF; font-weight: 800; }
+    .stSlider [data-baseweb="slider"] { margin-bottom: 25px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. LOAD THE AI BUNDLE
-# This contains the model, feature list, and accuracy (MAE)
-bundle = joblib.load('data/regret_bundle.pkl')
-model, features = bundle['model'], bundle['features']
+# --- 2. LOAD DATA ---
+try:
+    bundle = joblib.load('data/regret_bundle.pkl')
+    model, features = bundle['model'], bundle['features']
+except:
+    st.error("Please run 'python train_model.py' first.")
+    st.stop()
 
-# 3. STATE MANAGEMENT
-# We use st.session_state to handle the transaction flow
-if 'app_state' not in st.session_state: st.session_state.app_state = 'dashboard'
+if 'step' not in st.session_state: st.session_state.step = 'dashboard'
 if 'vault' not in st.session_state: st.session_state.vault = []
 
-# SIDEBAR (Simulating the Profile/Settings)
+# --- 3. REVOLUT SIDEBAR ---
 with st.sidebar:
     st.image("https://upload.wikimedia.org/wikipedia/commons/e/e5/Revolut_logo.png", width=120)
     st.write("### Maximilian")
+    st.caption("Premium Member")
     balance = st.number_input("Current Balance (€)", value=2850.0)
-    st.caption(f"AI Integrity: {100-bundle['mae']:.1f}%")
 
-# --- DASHBOARD VIEW ---
-if st.session_state.app_state == 'dashboard':
+# --- 4. STEP 1: DASHBOARD ---
+if st.session_state.step == 'dashboard':
     st.title("Home")
+    st.markdown(f'<div class="revolut-card"><p style="color:#8e8e93; margin-bottom:5px;">Main Account</p><h1>€ {balance:,.2f}</h1></div>', unsafe_allow_html=True)
     
-    # Big Revolut-style Card
-    st.markdown(f'<div class="revolut-card"><h3>Main Account</h3><h1>€ {balance:,.2f}</h1></div>', unsafe_allow_html=True)
-    
-    col_pay, col_vault = st.columns(2)
-    with col_pay:
+    col1, col2 = st.columns(2, gap="medium")
+    with col1:
         if st.button("💸 New Online Payment"):
-            st.session_state.app_state = 'checkout'
+            st.session_state.step = 'checkout'
             st.rerun()
-    with col_vault:
+    with col2:
         if st.button("🛡️ Cooling Vault"):
-            st.session_state.app_state = 'vault'
+            st.session_state.step = 'vault'
             st.rerun()
 
-# --- CHECKOUT FLOW (The Feature) ---
-elif st.session_state.app_state == 'checkout':
+# --- 5. STEP 2: TRANSACTION VERIFICATION (The Simulation) ---
+elif st.session_state.step == 'checkout':
     st.title("Verify Transaction")
-    st.write("Requested by: **StockX / Sneakers**")
+    st.write("Merchant Request: **StockX / Sneakers**")
     
     with st.container():
         st.markdown('<div class="revolut-card">', unsafe_allow_html=True)
-        col1, col2 = st.columns(2, gap="large")
-        
-        with col1:
-            st.subheader("Payment Details")
-            price = st.number_input("Amount (€)", value=320.0)
-            merchant_risk = st.select_slider("Category Risk (Returns)", options=[0.05, 0.15, 0.30, 0.55], value=0.15)
-            fomo = st.toggle("Limited Drop / FOMO?")
-        
-        with col2:
-            st.subheader("Your Context")
-            mood = st.slider("Mood Stability (1-10)", 1, 10, 4)
-            sleep = st.slider("Sleep last night (h)", 3, 12, 6)
+        c1, c2 = st.columns(2, gap="large")
+        with c1:
+            st.markdown("### Payment Details")
+            price = st.number_input("Amount (€)", value=350.0)
+            merchant_risk = st.select_slider("Category Reliability", options=[0.05, 0.15, 0.30, 0.55], value=0.15, format_func=lambda x: f"{int(x*100)}% Risk")
+            fomo = st.toggle("Limited Release / Flash Sale")
+        with c2:
+            st.markdown("### Personal Context")
+            mood = st.slider("Mood (1-10)", 1, 10, 4)
+            sleep = st.slider("Sleep last night (h)", 3.0, 12.0, 5.5)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    if st.button("Confirm and Analyze", type="primary"):
-        with st.spinner('Regret Guard AI is analyzing...'):
-            time.sleep(1) # Simulate real-world API processing
-            
-            # FEATURE ENGINEERING (Matches train_model logic)
+    if st.button("Analyze & Verify", type="primary"):
+        with st.spinner('Analyzing financial health...'):
+            time.sleep(1.2)
             rel_price = price / balance
             imp_index = ((11 - mood) * 0.3 + (11 - sleep) * 0.3 + (int(fomo) * 1.5))
-            
-            # Create input for the model
             inputs = pd.DataFrame([[price, balance, mood, int(fomo), sleep, merchant_risk, rel_price, imp_index]], columns=features)
             score = model.predict(inputs)[0]
             
-            # Display Result (Evaluator Mode)
             st.divider()
-            st.metric("Probability of Purchase Regret", f"{score:.1f}%")
+            st.markdown(f'<div class="metric-box"><p style="color:#8e8e93;">Probability of Regret</p><h2 style="color:{"#FF4B4B" if score > 60 else "#00CC96"}">{score:.1f}%</h2></div>', unsafe_allow_html=True)
             
             if score > 60:
                 st.error("🚨 **High Risk Intervention**")
-                st.write(f"This purchase accounts for **{rel_price*100:.1f}%** of your balance. Your current mood and lack of sleep suggest an impulsive pattern.")
-                
-                # XAI: Explain why
+                st.info(f"**AI Insight:** This purchase consumes {rel_price*100:.1f}% of your liquid balance. Combined with your current fatigue ({sleep}h sleep), our model detects a high probability of impulsive regret.")
+                st.write("**Risk Drivers:**")
                 st.bar_chart(pd.Series(model.feature_importances_, index=features))
                 
-                if st.button("❄️ Block & Move to Vault"):
-                    st.session_state.vault.append({"Merchant": "StockX", "Price": f"{price}€", "Risk": f"{score:.1f}%"})
-                    st.toast("Security pause active.")
-                    st.session_state.app_state = 'dashboard'
+                if st.button("❄️ Block & Save to Cooling Vault"):
+                    st.session_state.vault.append({"Merchant": "StockX", "Amount": f"{price}€", "Risk": f"{score:.1f}%"})
+                    st.session_state.step = 'dashboard'
                     st.rerun()
             else:
-                st.success("✅ **Verified**")
-                if st.button("Complete Transaction"):
-                    st.session_state.app_state = 'dashboard'
+                st.success("✅ **Verified: Low Risk**")
+                if st.button("Finalize Payment"):
+                    st.session_state.step = 'dashboard'
                     st.rerun()
     
-    if st.button("← Cancel Payment"):
-        st.session_state.app_state = 'dashboard'
-        st.rerun()
+    if st.button("← Cancel Payment", key="back"): st.session_state.step = 'dashboard'; st.rerun()
 
-# --- VAULT VIEW ---
-elif st.session_state.app_state == 'vault':
+elif st.session_state.step == 'vault':
     st.title("Cooling Vault")
-    st.write("Items stored for 24 hours to prevent impulsive decisions.")
     if st.session_state.vault:
-        st.table(st.session_state.vault)
-        if st.button("Clear Vault"):
-            st.session_state.vault = []
-            st.rerun()
-    else:
-        st.info("Vault is currently empty.")
-    
-    if st.button("← Back to Dashboard"):
-        st.session_state.app_state = 'dashboard'
-        st.rerun()
+        st.dataframe(pd.DataFrame(st.session_state.vault), use_container_width=True)
+    else: st.info("Vault is empty.")
+    if st.button("← Back to Dashboard"): st.session_state.step = 'dashboard'; st.rerun()
