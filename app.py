@@ -178,6 +178,15 @@ st.markdown("""
         line-height: 1.4;
     }
 
+    /* Context panel for "How you feel" section */
+    .context-panel {
+        margin-top: 6px;
+        padding: 12px 14px 10px 14px;
+        border-radius: 16px;
+        background: radial-gradient(circle at top left, #101827 0%, #020617 60%, #020617 100%);
+        border: 1px solid rgba(129, 140, 248, 0.55);
+    }
+
     /* Bottom nav was removed for a cleaner layout */
 
     </style>
@@ -327,23 +336,30 @@ elif st.session_state.ui_state == "payment_input":
 
         st.divider()
         st.markdown(
-            "<div class='step-label' style='margin-bottom:6px;'>How you feel now shapes the AI decision</div>",
+            "<div class='step-label' style='margin-bottom:2px;'>Step 1 · Your current state</div>",
             unsafe_allow_html=True,
         )
-        mood = st.select_slider(
-            "Current mood (1 = low, 10 = great)", options=range(1, 11), value=5
+        st.markdown(
+            "<div class='step-title' style='font-size:16px; margin-bottom:4px;'>How you feel now shapes the AI decision</div>",
+            unsafe_allow_html=True,
         )
-        sleep = st.slider("Sleep last night (hours)", 3.0, 11.0, 7.0)
+
+        st.markdown('<div class="context-panel">', unsafe_allow_html=True)
+        mood = st.select_slider(
+            "🙂 Mood right now (1 = low, 10 = great)", options=range(1, 11), value=5
+        )
+        sleep = st.slider("😴 Sleep last night (hours)", 3.0, 11.0, 7.0)
         risk = st.select_slider(
-            "Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
+            "⚠️ Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
         )
         st.markdown(
-            "<p style='margin-top:8px; margin-bottom:2px; color:#f9fafb; font-size:13px; font-weight:500;'>"
-            "This feels like a limited‑time deal / flash sale"
+            "<p style='margin-top:10px; margin-bottom:2px; color:#f9fafb; font-size:13px; font-weight:500;'>"
+            "🔥 This feels like a limited‑time deal / flash sale"
             "</p>",
             unsafe_allow_html=True,
         )
         fomo = st.toggle("", label_visibility="collapsed")
+        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Primary call to action: run the AI check
