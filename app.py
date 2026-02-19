@@ -243,10 +243,12 @@ if st.session_state.ui_state == "home":
     item = st.session_state.current_item
     st.markdown(
         f"""
-        <div class="tx-list" style="margin-top:6px; margin-bottom:10px;">
-            <div class="tx-item" style="border-bottom:none; padding-bottom:6px;">
+        <div class="tx-list" style="margin-top:8px; margin-bottom:10px;">
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:#a5b4fc; margin-bottom:4px;">
+                Pending online checkout
+            </div>
+            <div class="tx-item" style="border-bottom:none; padding-bottom:4px; padding-top:4px;">
                 <div>
-                    <div style="font-size:13px; color:#8E8E93; margin-bottom:2px;">Pending online checkout</div>
                     <div style="font-size:15px; font-weight:600;">
                         {item['emoji']} {item['name']}
                     </div>
@@ -267,7 +269,7 @@ if st.session_state.ui_state == "home":
 
     # Transaction History inside phone card (purely contextual)
     st.markdown(
-        "<p style='margin-top:18px; font-size:13px; color:#8E8E93;'>Recent activity</p>",
+        "<p style='margin-top:18px; font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:#a5b4fc; margin-bottom:4px;'>Recent activity</p>",
         unsafe_allow_html=True,
     )
     st.markdown(
