@@ -326,7 +326,7 @@ elif st.session_state.ui_state == "payment_input":
             step=5.0,
         )
         st.markdown(
-            "<p style='font-size:11px; color:#a0a0aa; margin-top:-4px;'>"
+            "<p style='font-size:12px; color:#e5e7eb; margin-top:-2px;'>"
             "Before Revolut sends this money, Regret Guard runs a quick behavioral check."
             "</p>",
             unsafe_allow_html=True,
@@ -334,7 +334,7 @@ elif st.session_state.ui_state == "payment_input":
 
         st.divider()
         st.markdown(
-            "<p style='font-size:11px; color:#a0a0aa; margin-bottom:4px;'>How you feel now shapes the AI decision:</p>",
+            "<p style='font-size:12px; color:#e5e7eb; margin-bottom:4px;'>How you feel now shapes the AI decision:</p>",
             unsafe_allow_html=True,
         )
         mood = st.select_slider(
@@ -348,7 +348,15 @@ elif st.session_state.ui_state == "payment_input":
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Primary call to action: run the AI check
-    if st.button("Run Regret Guard check", type="primary"):
+    st.markdown('<div class="primary-cta">', unsafe_allow_html=True)
+    primary_col, back_col = st.columns([2, 1])
+    with primary_col:
+        run_clicked = st.button("Run Regret Guard check", type="primary")
+    with back_col:
+        back_clicked = st.button("← Back to account")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if run_clicked:
         with st.spinner("Analyzing your situation with the AI model..."):
             time.sleep(1.5)
 
@@ -366,8 +374,7 @@ elif st.session_state.ui_state == "payment_input":
             st.session_state.ui_state = "ai_evaluator"
             st.rerun()
 
-    cancel_col, _ = st.columns([1, 2])
-    if cancel_col.button("← Back to account"):
+    if back_clicked:
         st.session_state.ui_state = "home"
         st.rerun()
 
