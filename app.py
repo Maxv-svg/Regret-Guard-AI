@@ -213,6 +213,8 @@ if "current_item" not in st.session_state:
         "category_risk": 0.30,
         "suggested_price": 89.0,
     }
+if "last_outcome" not in st.session_state:
+    st.session_state.last_outcome = None
 
 # Phone frame wrapper (all views live inside)
 st.markdown('<div class="phone-shell">', unsafe_allow_html=True)
@@ -455,8 +457,13 @@ elif st.session_state.ui_state == "ai_evaluator":
     st.markdown("</div>", unsafe_allow_html=True)
 
     if buy_clicked:
-        st.toast("In this simulation, the hoodie is bought. In the real app, funds would leave your account.")
-        st.session_state.ui_state = "home"
+        st.session_state.last_outcome = {
+            "action": "bought",
+            "item": item["name"],
+            "amount": f"{st.session_state.last_price:.2f}€",
+            "risk": f"{score:.1f}%",
+        }
+        st.session_state.ui_state = "success"
         st.rerun()
 
     if save_clicked:
@@ -468,14 +475,62 @@ elif st.session_state.ui_state == "ai_evaluator":
             }
         )
         st.toast("Stored in Cooling Vault. Real app would remind you in 24h.")
-        st.session_state.ui_state = "home"
+        st.session_state.last_outcome = {
+            "action": "vault",
+            "item": item["name"],
+            "amount": f"{st.session_state.last_price:.2f}€",
+            "risk": f"{score:.1f}%",
+        }
+        st.session_state.ui_state = "success"
         st.rerun()
 
     if st.button("← Return"):
         st.session_state.ui_state = "payment_input"
         st.rerun()
 
-# --- VIEW 4: COOLING VAULT ---
+# --- VIEW 4: TRANSACTION SUMMARY / SUCCESS LAYER ---
+elif st.session_state.ui_state == "success":
+    outcome = st.session_state.last_outcome or {}
+    action = outcome.get("action", "bought")
+
+    st.markdown(
+        "<div class='step-label'>Summary</div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<div class='step-title'>Transaction result</div>",
+        unsafe_allow_html=True,
+    )
+
+    bg = "#0f172a" if action == "bought" else "#111827"
+    border = "#22c55e" if action == "bought" else "#38bdf8"
+    headline = "Payment completed" if action == "bought" else "Moved to Cooling Vault"
+    subtitle = (
+        "In a real Revolut account, this money would have left your balance."
+        if action == "bought"
+        else "You pressed pause. In the real app, we’d remind you in 24 hours."
+    )
+
+    st.markdown(
+        f"""
+        <div style="background:{bg}; border-radius:20px; padding:16px 18px; border:1px solid {border}; margin-bottom:12px;">
+            <p style="font-size:15px; font-weight:600; margin:0 0 4px 0;">{headline}</p>
+            <p style="font-size:13px; margin:0 0 8px 0;">{subtitle}</p>
+            <p style="font-size:13px; margin:0;">
+                <b>Item:</b> {outcome.get("item","ASOS • Oversized hoodie")}<br/>
+                <b>Amount:</b> {outcome.get("amount","€ 89.00")}<br/>
+                <b>Regret risk at decision time:</b> {outcome.get("risk","--")}
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.button("← Back to home"):
+        st.session_state.ui_state = "home"
+        st.rerun()
+
+# --- VIEW 5: COOLING VAULT ---
 elif st.session_state.ui_state == 'vault':
     st.markdown(
         "<h3 style='margin-top:4px; margin-bottom:4px;'>Cooling Vault</h3>",
