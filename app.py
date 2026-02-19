@@ -16,6 +16,13 @@ st.markdown("""
         font-size: 14px;
     }
 
+    /* Form field labels (sliders, inputs, etc.) */
+    .stApp label {
+        color: #e5e7eb !important;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
     /* Hide Streamlit default chrome */
     header, footer {visibility: hidden;}
 
