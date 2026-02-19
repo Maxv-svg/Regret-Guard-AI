@@ -165,11 +165,19 @@ except:
     st.error("AI Brain not found. Please run 'python train_model.py' first.")
     st.stop()
 
-# 3. STATE CONTROLLER
-if 'ui_state' not in st.session_state:
-    st.session_state.ui_state = 'home'
-if 'vault' not in st.session_state:
+# 3. STATE CONTROLLER (simple state machine)
+if "ui_state" not in st.session_state:
+    st.session_state.ui_state = "home"
+if "vault" not in st.session_state:
     st.session_state.vault = []
+if "current_item" not in st.session_state:
+    # Simulated e‑commerce checkout item
+    st.session_state.current_item = {
+        "name": "ASOS • Oversized hoodie",
+        "emoji": "🧥",
+        "category_risk": 0.30,
+        "suggested_price": 89.0,
+    }
 
 # Phone frame wrapper (all views live inside)
 st.markdown('<div class="phone-shell">', unsafe_allow_html=True)
@@ -191,33 +199,51 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- VIEW 1: PREMIUM HOME DASHBOARD ---
-if st.session_state.ui_state == 'home':
+# --- VIEW 1: PREMIUM HOME / SIMULATION DASHBOARD ---
+if st.session_state.ui_state == "home":
     # Hero Card
     st.markdown(
         """
         <div class="rev-card">
             <p style="color: #8E8E93; font-size: 12px; margin-bottom: 2px;">Main Account • EUR</p>
             <h1 style="font-size: 40px; margin: 0 0 4px 0;">€ 2,840.50</h1>
-            <p style="color:#4ade80; font-size:12px; margin:0;">AI Guard: <b>active</b> on online checkouts</p>
+            <p style="color:#4ade80; font-size:12px; margin:0;">Regret Guard is <b>on</b> for online checkouts</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Action Grid (Revolut-style quick actions)
-    col1, col2, col3, col4 = st.columns(4)
-    col1.button("➕\nTop up", key="home_top_up")
-    if col2.button("💸\nSend", key="home_send"):
-        st.session_state.ui_state = 'payment_input'
-        st.rerun()
-    col3.button("📊\nInsights", key="home_insights")
-    if col4.button("🛡️\nVault", key="home_vault"):
-        st.session_state.ui_state = 'vault'
+    # Simulation card: new online checkout waiting for verification
+    item = st.session_state.current_item
+    st.markdown(
+        f"""
+        <div class="tx-list" style="margin-top:6px; margin-bottom:10px;">
+            <div class="tx-item" style="border-bottom:none; padding-bottom:6px;">
+                <div>
+                    <div style="font-size:13px; color:#8E8E93; margin-bottom:2px;">Pending online checkout</div>
+                    <div style="font-size:15px; font-weight:600;">
+                        {item['emoji']} {item['name']}
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-weight:600;">‑€{item['suggested_price']:.2f}</div>
+                    <div style="font-size:11px; color:#f97373;">Tap to verify</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.button("Review this purchase with AI"):
+        st.session_state.ui_state = "payment_input"
         st.rerun()
 
-    # Transaction History inside phone card
-    st.markdown("<p style='margin-top:18px; font-size:13px; color:#8E8E93;'>Recent activity</p>", unsafe_allow_html=True)
+    # Transaction History inside phone card (purely contextual)
+    st.markdown(
+        "<p style='margin-top:18px; font-size:13px; color:#8E8E93;'>Recent activity</p>",
+        unsafe_allow_html=True,
+    )
     st.markdown(
         """
         <div class="tx-list">
@@ -243,35 +269,47 @@ if st.session_state.ui_state == 'home':
     )
 
 # --- VIEW 2: SMART PAYMENT INTERVENTION (CHECKOUT SCREEN) ---
-elif st.session_state.ui_state == 'payment_input':
+elif st.session_state.ui_state == "payment_input":
+    item = st.session_state.current_item
+
     st.markdown(
-        "<p style='font-size:14px; color:#8E8E93; margin-bottom:4px;'>Checkout verification</p>",
+        "<p style='font-size:14px; color:#8E8E93; margin-bottom:4px;'>Step 1 · Verify this purchase</p>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<h3 style='margin-top:0; margin-bottom:8px;'>ASOS London</h3>",
+        f"<h3 style='margin-top:0; margin-bottom:8px;'>{item['emoji']} {item['name']}</h3>",
         unsafe_allow_html=True,
     )
 
     with st.container():
         st.markdown('<div class="rev-card">', unsafe_allow_html=True)
-        price = st.number_input("Amount to pay (€)", value=199.0, step=10.0)
+        price = st.number_input(
+            "Amount at checkout (€)",
+            value=float(item["suggested_price"]),
+            step=5.0,
+        )
         st.markdown(
-            "<p style='font-size:12px; color:#8E8E93; margin-top:-4px;'>Regret Guard will scan this purchase before sending.</p>",
+            "<p style='font-size:12px; color:#8E8E93; margin-top:-4px;'>"
+            "Before Revolut sends this money, Regret Guard runs a quick behavioral check."
+            "</p>",
             unsafe_allow_html=True,
         )
 
         st.divider()
-        st.caption("Behavior & context at the moment of purchase")
-        mood = st.select_slider("Current mood (1 = low, 10 = great)", options=range(1, 11), value=5)
+        st.caption("How are you right now? (this shapes the AI's decision)")
+        mood = st.select_slider(
+            "Current mood (1 = low, 10 = great)", options=range(1, 11), value=5
+        )
         sleep = st.slider("Sleep last night (hours)", 3.0, 11.0, 7.0)
-        risk = st.select_slider("Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=0.15)
-        fomo = st.toggle("Limited-time offer / flash sale?")
+        risk = st.select_slider(
+            "Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
+        )
+        fomo = st.toggle("This feels like a limited‑time deal / flash sale")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Primary call to action: run the AI check
-    if st.button("Verify with AI & continue", type="primary"):
-        with st.spinner("AI Guard is evaluating your decision..."):
+    if st.button("Run Regret Guard check", type="primary"):
+        with st.spinner("Analyzing your situation with the AI model..."):
             time.sleep(1.5)
 
             rel_price = price / 2840.50
@@ -289,20 +327,21 @@ elif st.session_state.ui_state == 'payment_input':
             st.rerun()
 
     cancel_col, _ = st.columns([1, 2])
-    if cancel_col.button("← Cancel and go back"):
+    if cancel_col.button("← Back to account"):
         st.session_state.ui_state = "home"
         st.rerun()
 
 # --- VIEW 3: THE AI EVALUATOR (Decision Screen) ---
-elif st.session_state.ui_state == 'ai_evaluator':
+elif st.session_state.ui_state == "ai_evaluator":
     score = st.session_state.last_score
+    item = st.session_state.current_item
 
     st.markdown(
-        "<p style='font-size:14px; color:#8E8E93; margin-bottom:4px;'>AI checkout decision</p>",
+        "<p style='font-size:14px; color:#8E8E93; margin-bottom:4px;'>Step 2 · AI evaluates your decision</p>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<h3 style='margin-top:0; margin-bottom:8px;'>Risk of future regret</h3>",
+        f"<h3 style='margin-top:0; margin-bottom:8px;'>Regret risk for {item['emoji']} {item['name']}</h3>",
         unsafe_allow_html=True,
     )
 
@@ -310,13 +349,13 @@ elif st.session_state.ui_state == 'ai_evaluator':
         f"""
         <div class="rev-card" style="border: 2px solid {'#FF4B4B' if score > 60 else '#22c55e'}">
             <p style="text-align:center; color:#8E8E93; font-size:13px; margin-bottom:6px;">
-                For this payment of <b>€{st.session_state.last_price:.2f}</b>
+                For this simulated payment of <b>€{st.session_state.last_price:.2f}</b>
             </p>
             <h1 style="text-align:center; font-size: 56px; margin: 0; color:{'#FF4B4B' if score > 60 else '#22c55e'};">
                 {score:.1f}%
             </h1>
             <p style="text-align:center; color:#8E8E93; font-size:12px; margin-top:4px;">
-                probability that you'll regret this purchase later
+                chance that you'll regret this purchase later, based on your past data
             </p>
         </div>
         """,
@@ -329,7 +368,7 @@ elif st.session_state.ui_state == 'ai_evaluator':
             <div class="ai-alert">
                 <b>High emotional risk detected.</b><br/>
                 Your current mood, recent sleep and FOMO pattern look similar to past purchases
-                that you later regretted. Regret Guard recommends <b>not</b> sending this payment now.
+                that you later regretted. Regret Guard recommends <b>waiting</b> before buying.
             </div>
             """,
             unsafe_allow_html=True,
@@ -340,39 +379,40 @@ elif st.session_state.ui_state == 'ai_evaluator':
             <div class="ai-alert" style="border-left-color:#22c55e; background:linear-gradient(135deg,#102318 0%,#111111 60%);">
                 <b>Low regret risk.</b><br/>
                 This purchase looks consistent with your usual behavior and financial buffer.
-                You can safely complete it, or still park it in the Cooling Vault if you want a pause.
+                You can safely complete it, or still park it in the Cooling Vault if you prefer a pause.
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    st.write("**Why the AI thinks this way (feature importance):**")
+    st.write("**Why the AI thinks this (feature importance):**")
     st.bar_chart(pd.Series(model.feature_importances_, index=features))
 
     # Explicit decision: Continue vs move to vault, regardless of risk level
+    st.markdown("**Step 3 · What do you want to do?**")
     primary_col, secondary_col = st.columns(2)
 
     with primary_col:
-        if st.button("✅ Continue and pay now"):
-            st.toast("Payment completed in prototype.")
+        if st.button("Buy it anyway"):
+            st.toast("In this simulation, the hoodie is bought. In the real app, funds would leave your account.")
             st.session_state.ui_state = "home"
             st.rerun()
 
     with secondary_col:
-        if st.container().button("❄️ Move to Cooling Vault", key="vault_from_ai"):
+        if st.container().button("Save in Cooling Vault", key="vault_from_ai"):
             st.session_state.vault.append(
                 {
-                    "Item": "ASOS / StockX",
+                    "Item": item["name"],
                     "Amount": f"{st.session_state.last_price:.2f}€",
                     "Risk": f"{score:.1f}%",
                 }
             )
-            st.toast("Moved to Cooling Vault. We will remind you in 24h in the real app.")
+            st.toast("Stored in Cooling Vault. Real app would remind you in 24h.")
             st.session_state.ui_state = "home"
             st.rerun()
 
     back_col, _ = st.columns([1, 2])
-    if back_col.button("← Change inputs"):
+    if back_col.button("← Change how you feel / context"):
         st.session_state.ui_state = "payment_input"
         st.rerun()
 
