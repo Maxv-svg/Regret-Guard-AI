@@ -321,7 +321,6 @@ elif st.session_state.ui_state == "payment_input":
     )
 
     with st.container():
-        st.markdown('<div class="rev-card">', unsafe_allow_html=True)
         price = float(item["suggested_price"])
         st.markdown(
             f"<p style='font-size:13px; color:#e5e7eb; margin-bottom:0;'>Amount at checkout</p>"
@@ -345,7 +344,6 @@ elif st.session_state.ui_state == "payment_input":
             unsafe_allow_html=True,
         )
 
-        st.markdown('<div class="context-panel">', unsafe_allow_html=True)
         mood = st.select_slider(
             "Mood right now (1 = low, 10 = great)", options=range(1, 11), value=5
         )
@@ -354,8 +352,6 @@ elif st.session_state.ui_state == "payment_input":
             "Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
         )
         fomo = st.toggle("This feels like a limited‑time deal / flash sale")
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
     # Primary call to action: run the AI check
     st.markdown('<div class="primary-cta">', unsafe_allow_html=True)
