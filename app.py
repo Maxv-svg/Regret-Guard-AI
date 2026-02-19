@@ -390,6 +390,8 @@ elif st.session_state.ui_state == "payment_input":
 elif st.session_state.ui_state == "ai_evaluator":
     score = st.session_state.last_score
     item = st.session_state.current_item
+    importances = pd.Series(model.feature_importances_, index=features)
+    top_features = ", ".join(importances.sort_values(ascending=False).head(3).index.tolist())
 
     st.markdown(
         "<div class='step-label'>Step 2 · AI review</div>",
@@ -419,58 +421,61 @@ elif st.session_state.ui_state == "ai_evaluator":
 
     if score > 60:
         st.markdown(
-            """
+            f"""
             <div class="ai-alert">
                 <b>High emotional risk detected.</b><br/>
                 Your current mood, recent sleep and FOMO pattern look similar to past purchases
-                that you later regretted. Regret Guard recommends <b>waiting</b> before buying.
+                that you later regretted. Regret Guard recommends <b>waiting</b> before buying.<br/><br/>
+                <span style="font-size:12px; color:#e5e7eb;">
+                The model is mainly reacting to: <b>{top_features}</b>.
+                </span>
             </div>
             """,
             unsafe_allow_html=True,
         )
     else:
         st.markdown(
-            """
+            f"""
             <div class="ai-alert" style="border-left-color:#22c55e; background:linear-gradient(135deg,#102318 0%,#111111 60%);">
                 <b>Low regret risk.</b><br/>
                 This purchase looks consistent with your usual behavior and financial buffer.
-                You can safely complete it, or still park it in the Cooling Vault if you prefer a pause.
+                You can safely complete it, or still park it in the Cooling Vault if you prefer a pause.<br/><br/>
+                <span style="font-size:12px; color:#e5e7eb;">
+                The model pays most attention to: <b>{top_features}</b> for this decision.
+                </span>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
-    st.write("**Why the AI thinks this (feature importance):**")
-    st.bar_chart(pd.Series(model.feature_importances_, index=features))
 
     # Explicit decision: Continue vs move to vault, regardless of risk level
     st.markdown(
         "<div class='step-label'>Step 3 · Your decision</div>",
         unsafe_allow_html=True,
     )
-    primary_col, secondary_col = st.columns(2)
+    st.markdown('<div class="primary-cta">', unsafe_allow_html=True)
+    buy_clicked = st.button("✅ Buy it anyway", use_container_width=True)
+    save_clicked = st.button("❄️ Save in Cooling Vault", key="vault_from_ai_decision", use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    with primary_col:
-        if st.button("Buy it anyway"):
-            st.toast("In this simulation, the hoodie is bought. In the real app, funds would leave your account.")
-            st.session_state.ui_state = "home"
-            st.rerun()
+    if buy_clicked:
+        st.toast("In this simulation, the hoodie is bought. In the real app, funds would leave your account.")
+        st.session_state.ui_state = "home"
+        st.rerun()
 
-    with secondary_col:
-        if st.container().button("Save in Cooling Vault", key="vault_from_ai"):
-            st.session_state.vault.append(
-                {
-                    "Item": item["name"],
-                    "Amount": f"{st.session_state.last_price:.2f}€",
-                    "Risk": f"{score:.1f}%",
-                }
-            )
-            st.toast("Stored in Cooling Vault. Real app would remind you in 24h.")
-            st.session_state.ui_state = "home"
-            st.rerun()
+    if save_clicked:
+        st.session_state.vault.append(
+            {
+                "Item": item["name"],
+                "Amount": f"{st.session_state.last_price:.2f}€",
+                "Risk": f"{score:.1f}%",
+            }
+        )
+        st.toast("Stored in Cooling Vault. Real app would remind you in 24h.")
+        st.session_state.ui_state = "home"
+        st.rerun()
 
-    back_col, _ = st.columns([1, 2])
-    if back_col.button("← Change how you feel / context"):
+    if st.button("← Return"):
         st.session_state.ui_state = "payment_input"
         st.rerun()
 
