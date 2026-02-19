@@ -1,48 +1,51 @@
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error
 import joblib
 import os
 
-# 1. Synthetische Daten mit Logik generieren
-def generate_data(n=2000):
+# 1. Advanced Synthetic Data Generation
+def generate_data(n=3000):
     np.random.seed(42)
     data = {
-        'price': np.random.uniform(5, 1000, n),           # Preis des Artikels
-        'account_balance': np.random.uniform(100, 5000, n), # Verfügbares Guthaben
-        'mood_score': np.random.randint(1, 11, n),        # 1 (Schlecht) bis 10 (Sehr gut)
-        'is_limited_offer': np.random.choice([0, 1], n),  # FOMO-Faktor
-        'sleep_hours': np.random.uniform(3, 10, n)        # Erholungsgrad
+        'price': np.random.uniform(10, 1000, n),
+        'account_balance': np.random.uniform(100, 5000, n),
+        'mood_score': np.random.randint(1, 11, n),
+        'is_limited_offer': np.random.choice([0, 1], n),
+        'sleep_hours': np.random.uniform(3, 11, n),
+        'merchant_return_rate': np.random.uniform(0.02, 0.45, n)
     }
     df = pd.DataFrame(data)
     
-    # Logik für den Regret Score (0-100)
-    # Höherer Stress, wenn der Preis einen großen Teil des Kontostands ausmacht
-    financial_ratio = (df['price'] / df['account_balance']) * 40
-    
+    # Complex non-linear logic for Regret
+    fin_pressure = (df['price'] / df['account_balance']) * 45
     df['regret_score'] = (
-        financial_ratio +                      # Finanzielle Belastung
-        (11 - df['mood_score']) * 4 +          # Emotionale Verfassung
-        (10 - df['sleep_hours']) * 2 +         # Körperliche Verfassung
-        (df['is_limited_offer'] * 15)          # Zeitdruck
+        fin_pressure + 
+        (df['merchant_return_rate'] * 25) +
+        (11 - df['mood_score']) * 4 + 
+        (10 - df['sleep_hours']) * 2 +
+        (df['is_limited_offer'] * 15)
     )
-    
-    # Rauschen hinzufügen für Realismus und Begrenzung auf 0-100
-    df['regret_score'] += np.random.normal(0, 5, n)
-    df['regret_score'] = df['regret_score'].clip(0, 100)
+    df['regret_score'] = df['regret_score'].clip(0, 100) + np.random.normal(0, 4, n)
     return df
 
-# 2. Modell trainieren
-print("Starte Offline-Training...")
+# 2. Pipeline with Evaluation
 df = generate_data()
 X = df.drop('regret_score', axis=1)
 y = df['regret_score']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
 model = RandomForestRegressor(n_estimators=100, random_state=42)
-model.fit(X, y)
+model.fit(X_train, y_train)
 
-# 3. Modell exportieren
-if not os.path.exists('data'):
-    os.makedirs('data')
-joblib.dump(model, 'data/regret_model.pkl')
-print("Erfolg: Modell gespeichert unter 'data/regret_model.pkl'")
+# 3. Export with metadata for the App
+if not os.path.exists('data'): os.makedirs('data')
+payload = {
+    'model': model,
+    'features': X.columns.tolist(),
+    'mae': mean_absolute_error(y_test, model.predict(X_test))
+}
+joblib.dump(payload, 'data/regret_bundle.pkl')
+print(f"Mind-blowing pipeline ready. MAE: {payload['mae']:.2f}")
