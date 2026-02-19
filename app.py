@@ -453,7 +453,7 @@ elif st.session_state.ui_state == "ai_evaluator":
     )
     st.markdown('<div class="primary-cta">', unsafe_allow_html=True)
     buy_clicked = st.button("✅ Buy it anyway", use_container_width=True)
-    save_clicked = st.button("❄️ Save in Cooling Vault", key="vault_from_ai_decision", use_container_width=True)
+    save_clicked = st.button("⛔ Stop transaction", key="vault_from_ai_decision", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
     if buy_clicked:
@@ -474,14 +474,14 @@ elif st.session_state.ui_state == "ai_evaluator":
                 "Risk": f"{score:.1f}%",
             }
         )
-        st.toast("Stored in Cooling Vault. Real app would remind you in 24h.")
+        st.toast("Transaction stopped and kept on file.")
         st.session_state.last_outcome = {
-            "action": "vault",
+            "action": "stopped",
             "item": item["name"],
             "amount": f"{st.session_state.last_price:.2f}€",
             "risk": f"{score:.1f}%",
         }
-        st.session_state.ui_state = "success"
+        st.session_state.ui_state = "home"
         st.rerun()
 
     if st.button("← Return"):
@@ -504,7 +504,7 @@ elif st.session_state.ui_state == "success":
 
     bg = "#0f172a" if action == "bought" else "#111827"
     border = "#22c55e" if action == "bought" else "#38bdf8"
-    headline = "Payment completed" if action == "bought" else "Moved to Cooling Vault"
+    headline = "Payment completed" if action == "bought" else "Transaction stopped"
     st.markdown(
         f"""
         <div style="background:{bg}; border-radius:20px; padding:16px 18px; border:1px solid {border}; margin-bottom:12px;">
@@ -525,14 +525,14 @@ elif st.session_state.ui_state == "success":
         st.session_state.ui_state = "home"
         st.rerun()
 
-# --- VIEW 5: COOLING VAULT ---
+# --- VIEW 5: STOPPED TRANSACTIONS (previously Cooling Vault) ---
 elif st.session_state.ui_state == 'vault':
     st.markdown(
-        "<h3 style='margin-top:4px; margin-bottom:4px;'>Cooling Vault</h3>",
+        "<h3 style='margin-top:4px; margin-bottom:4px;'>Stopped transactions</h3>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        "<p style='font-size:13px; color:#8E8E93;'>Items you stopped at the last minute to review with a cool head.</p>",
+        "<p style='font-size:13px; color:#8E8E93;'>Transactions you decided to stop at the last moment.</p>",
         unsafe_allow_html=True,
     )
 
