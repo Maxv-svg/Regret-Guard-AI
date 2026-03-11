@@ -356,6 +356,10 @@ elif st.session_state.ui_state == "payment_input":
             "Which product are you about to buy? (for review lookup)",
             value=item["name"],
             key="product_query",
+            help="Words here are matched against 1–2★ Amazon reviews. Use product type or name, e.g. 'Wireless Earbuds' or 'earbuds' – the default is already set for this.",
+        )
+        st.caption(
+            "Tip: Keep the default **Wireless Earbuds** (or type e.g. *earbuds*, *earphones*) so the AI can include real Amazon review evidence in the regret score."
         )
         user_reason = st.text_area(
             "Why do you want to buy this?",
