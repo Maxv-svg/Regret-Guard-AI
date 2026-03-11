@@ -211,12 +211,12 @@ if "ui_state" not in st.session_state:
 if "vault" not in st.session_state:
     st.session_state.vault = []
 if "current_item" not in st.session_state:
-    # Simulated e‑commerce checkout item
+    # Default: typical Amazon product (matches amazon_reviews.csv context)
     st.session_state.current_item = {
-        "name": "ASOS • Oversized hoodie",
+        "name": "Amazon • Wireless Earbuds",
         "emoji": "",
-        "category_risk": 0.30,
-        "suggested_price": 89.0,
+        "category_risk": 0.25,
+        "suggested_price": 59.99,
     }
 if "last_outcome" not in st.session_state:
     st.session_state.last_outcome = None
@@ -532,9 +532,14 @@ elif st.session_state.ui_state == "ai_evaluator":
             "<div class='step-label' style='margin-top:12px;'>Evidence from similar buyers</div>",
             unsafe_allow_html=True,
         )
+        st.markdown(
+            "*Regret Guard uses real, anonymised **1–2 star reviews** from the Amazon dataset: "
+            "buyers who were unhappy with their purchase or experience. The AI summarises common "
+            "complaints and weighs them against your reason to buy.*"
+        )
         st.write(
-            "Based on real 1★–2★ Amazon reviews for similar purchases, "
-            f"Regret Guard estimates a **{st.session_state.rag_regret_probability:.1f}%** "
+            "Based on these reviews, Regret Guard estimates a "
+            f"**{st.session_state.rag_regret_probability:.1f}%** "
             "chance that you would feel buyer's remorse."
         )
         progress = min(
@@ -551,9 +556,13 @@ elif st.session_state.ui_state == "ai_evaluator":
             st.info(st.session_state.rag_counter_argument)
 
         if st.session_state.rag_raw_reviews:
-            st.markdown("**Real‑World Evidence (1–2★ complaints):**")
+            st.markdown(
+                "**Real‑World Evidence:** Below are the **1–2 star** review texts from the "
+                "Amazon dataset that were used for this assessment. They show what went wrong "
+                "for other buyers."
+            )
             with st.expander(
-                f"See {len(st.session_state.rag_raw_reviews)} raw complaints "
+                f"Show {len(st.session_state.rag_raw_reviews)} raw 1–2★ reviews "
                 f"for “{st.session_state.rag_matched_query or 'this purchase'}”"
             ):
                 for i, review in enumerate(st.session_state.rag_raw_reviews, start=1):
@@ -626,7 +635,7 @@ elif st.session_state.ui_state == "success":
                 -{outcome.get("amount","€ 89.00")}
             </p>
             <p style="font-size:13px; margin:0;">
-                <b>Item:</b> {outcome.get("item","ASOS • Oversized hoodie")}<br/>
+                <b>Item:</b> {outcome.get("item","Amazon • Wireless Earbuds")}<br/>
                 <b>Regret risk at decision time:</b> {outcome.get("risk","--")}
             </p>
         </div>
