@@ -529,16 +529,22 @@ elif st.session_state.ui_state == "ai_evaluator":
 
     # Build reasoning text: ML factors + optional Cohere/review evidence
     reasoning_ml = f"The behavioral model pays most attention to: <b>{top_features}</b>."
-    if st.session_state.rag_regret_probability is not None and st.session_state.rag_core_failure_points:
-        reasoning_reviews = (
-            f" From real {_band_short} Amazon reviews, the main concerns are: "
-            + st.session_state.rag_core_failure_points.strip()[:300]
-            + ("…" if len(st.session_state.rag_core_failure_points.strip()) > 300 else "")
-            + f" The evidence-based regret estimate from these reviews is <b>{st.session_state.rag_regret_probability:.1f}%</b>. "
+    reasoning_reviews = ""
+    if st.session_state.rag_regret_probability is not None:
+        # Always include review evidence in the main description when we have a RAG score
+        parts = []
+        if st.session_state.rag_core_failure_points and st.session_state.rag_core_failure_points.strip():
+            parts.append(
+                f" From real {_band_short} Amazon reviews, the main concerns are: "
+                + st.session_state.rag_core_failure_points.strip()[:300]
+                + ("…" if len(st.session_state.rag_core_failure_points.strip()) > 300 else "")
+                + "."
+            )
+        parts.append(
+            f" The evidence-based regret estimate from these reviews is <b>{st.session_state.rag_regret_probability:.1f}%</b>. "
             "The score above combines this with your behavioral risk."
         )
-    else:
-        reasoning_reviews = ""
+        reasoning_reviews = " ".join(parts)
 
     st.markdown(
         f"""
