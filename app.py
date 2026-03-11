@@ -460,6 +460,16 @@ elif st.session_state.ui_state == "payment_input":
 # --- VIEW 3: THE AI EVALUATOR (Decision Screen) ---
 elif st.session_state.ui_state == "ai_evaluator":
     score = st.session_state.last_score
+    rag_score = st.session_state.rag_regret_probability
+    # When we have both ML and RAG, use a combined score for the "final rating"
+    if rag_score is not None:
+        combined_score = (score + rag_score) / 2.0
+        score_for_display = combined_score
+        score_source_note = "combined (your behavior + real Amazon reviews)"
+    else:
+        score_for_display = score
+        score_source_note = "based on your past data"
+
     item = st.session_state.current_item
     importances = pd.Series(model.feature_importances_, index=features)
     top_features = ", ".join(importances.sort_values(ascending=False).head(3).index.tolist())
@@ -474,14 +484,14 @@ elif st.session_state.ui_state == "ai_evaluator":
     )
 
     # Risk bands: 0–20 low (green), 20–40 medium (yellow), >40 high (red)
-    if score <= 20:
+    if score_for_display <= 20:
         band_color = "#22c55e"
         headline_text = "Low regret risk."
         explanation = (
             "This purchase looks consistent with your usual behavior and financial buffer. "
             "You can safely complete it or still stop the transaction if you prefer a pause."
         )
-    elif score <= 40:
+    elif score_for_display <= 40:
         band_color = "#eab308"
         headline_text = "Medium regret risk."
         explanation = (
@@ -496,6 +506,19 @@ elif st.session_state.ui_state == "ai_evaluator":
             "Regret Guard recommends waiting before buying."
         )
 
+    # Build reasoning text: ML factors + optional Cohere/review evidence
+    reasoning_ml = f"The behavioral model pays most attention to: <b>{top_features}</b>."
+    if st.session_state.rag_regret_probability is not None and st.session_state.rag_core_failure_points:
+        reasoning_reviews = (
+            " From real 1–2★ Amazon reviews, the main concerns are: "
+            + st.session_state.rag_core_failure_points.strip()[:300]
+            + ("…" if len(st.session_state.rag_core_failure_points.strip()) > 300 else "")
+            + f" The evidence-based regret estimate from these reviews is <b>{st.session_state.rag_regret_probability:.1f}%</b>. "
+            "The score above combines this with your behavioral risk."
+        )
+    else:
+        reasoning_reviews = ""
+
     st.markdown(
         f"""
         <div class="rev-card" style="border: 2px solid {band_color};">
@@ -503,10 +526,10 @@ elif st.session_state.ui_state == "ai_evaluator":
                 For this simulated payment of <b>€{st.session_state.last_price:.2f}</b>
             </p>
             <h1 style="text-align:center; font-size: 56px; margin: 0; color:{band_color};">
-                {score:.1f}%
+                {score_for_display:.1f}%
             </h1>
             <p style="text-align:center; color:#f9fafb; font-size:13px; margin-top:2px;">
-                chance that you'll regret this purchase later, based on your past data
+                chance that you'll regret this purchase later ({score_source_note})
             </p>
         </div>
         """,
@@ -521,7 +544,7 @@ elif st.session_state.ui_state == "ai_evaluator":
                 {explanation}
             </p>
             <p style="margin:0; font-size:13px;">
-                The model pays most attention to: <b>{top_features}</b> for this decision.
+                {reasoning_ml}{reasoning_reviews}
             </p>
         </div>
         """,
@@ -585,7 +608,7 @@ elif st.session_state.ui_state == "ai_evaluator":
             "action": "bought",
             "item": item["name"],
             "amount": f"{st.session_state.last_price:.2f}€",
-            "risk": f"{score:.1f}%",
+            "risk": f"{score_for_display:.1f}%",
         }
         st.session_state.ui_state = "success"
         st.rerun()
@@ -595,7 +618,7 @@ elif st.session_state.ui_state == "ai_evaluator":
             {
                 "Item": item["name"],
                 "Amount": f"{st.session_state.last_price:.2f}€",
-                "Risk": f"{score:.1f}%",
+                "Risk": f"{score_for_display:.1f}%",
             }
         )
         st.toast("Transaction stopped and kept on file.")
@@ -603,7 +626,7 @@ elif st.session_state.ui_state == "ai_evaluator":
             "action": "stopped",
             "item": item["name"],
             "amount": f"{st.session_state.last_price:.2f}€",
-            "risk": f"{score:.1f}%",
+            "risk": f"{score_for_display:.1f}%",
         }
         st.session_state.ui_state = "home"
         st.rerun()
