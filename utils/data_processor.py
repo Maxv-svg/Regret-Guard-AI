@@ -8,6 +8,25 @@ import pandas as pd
 _REVIEWS_CACHE: Optional[pd.DataFrame] = None
 _LOAD_ERROR: Optional[str] = None  # Hint when file missing/empty/wrong shape
 
+# Embedded fallback for Streamlit Cloud / no CSV in repo (data/*.csv is gitignored)
+_EMBEDDED_REVIEWS = pd.DataFrame({
+    "Rating": [2, 1, 2, 1, 2],
+    "Review Title": [
+        "Battery died after a week",
+        "Sound is muffled",
+        "Connection drops constantly",
+        "Uncomfortable and fall out",
+        "Not worth the price",
+    ],
+    "Review Text": [
+        "These wireless earbuds stopped holding a charge after one week. Total waste of money for the price.",
+        "The earbuds sound terrible - very muffled and no bass. I regret buying them.",
+        "My earbuds keep disconnecting from my phone. So frustrating when you are on a call.",
+        "These earbuds hurt my ears and fall out when I move. Returned them.",
+        "For wireless earbuds at this price I expected better quality. Mediocre at best.",
+    ],
+})
+
 
 def _find_reviews_csv(base_dir: Path) -> Path:
     """Try amazon_reviews.csv then amazon_Reviews.csv (case variants)."""
@@ -47,56 +66,58 @@ def _load_reviews() -> pd.DataFrame:
 
     base_dir = Path(__file__).resolve().parents[1]
     csv_path = _find_reviews_csv(base_dir)
+    df = None
     if not csv_path.exists():
-        _LOAD_ERROR = "File not found: data/amazon_reviews.csv (or data/amazon_Reviews.csv). Add a CSV with columns: Rating, Review Title, Review Text."
-        _REVIEWS_CACHE = pd.DataFrame()
-        return _REVIEWS_CACHE
-
-    try:
-        df = pd.read_csv(csv_path)
-    except Exception as e:
-        err = str(e).strip().lower()
-        # If main file is empty or unreadable, try sample file so the user gets a result
+        # On Streamlit Cloud / fresh clone, data/*.csv are often missing (gitignored); try sample then embedded
         sample_path = base_dir / "data" / "amazon_reviews_sample.csv"
         if sample_path.exists():
             try:
                 df = pd.read_csv(sample_path)
-                if not df.empty and len(df.columns) >= 3:
-                    _REVIEWS_CACHE = None  # allow processing below
-                    # Fall through to normalization (we'll set cache at the end)
-                else:
-                    df = None
             except Exception:
-                df = None
+                pass
+        if df is None or df.empty or len(df.columns) < 3:
+            df = _EMBEDDED_REVIEWS.copy()
+        if df is not None and not df.empty and len(df.columns) >= 3:
+            # Use sample or embedded; skip to normalization below
+            pass
         else:
-            df = None
-        if df is None:
-            if "no columns to parse" in err or "empty" in err:
+            _LOAD_ERROR = "File not found: data/amazon_reviews.csv (or data/amazon_Reviews.csv). Add a CSV with columns: Rating, Review Title, Review Text."
+            _REVIEWS_CACHE = pd.DataFrame()
+            return _REVIEWS_CACHE
+
+    else:
+        # Main CSV path exists; load it (or fall back to sample / embedded on read error or empty)
+        try:
+            df = pd.read_csv(csv_path)
+        except Exception as e:
+            err = str(e).strip().lower()
+            sample_path = base_dir / "data" / "amazon_reviews_sample.csv"
+            if sample_path.exists():
+                try:
+                    df = pd.read_csv(sample_path)
+                except Exception:
+                    df = None
+            else:
+                df = None
+            if df is None or df.empty or len(df.columns) < 3:
+                df = _EMBEDDED_REVIEWS.copy()
+            if df is None or df.empty or len(df.columns) < 3:
                 _LOAD_ERROR = (
                     "The CSV file is empty or has no header row. Add a header: "
                     "Rating, Review Title, Review Text. See data/amazon_reviews_sample.csv for an example."
-                )
-            else:
-                _LOAD_ERROR = f"Could not read CSV: {e}"
-            _REVIEWS_CACHE = pd.DataFrame()
-            return _REVIEWS_CACHE
-    else:
+                ) if ("no columns to parse" in err or "empty" in err) else f"Could not read CSV: {e}"
+                _REVIEWS_CACHE = pd.DataFrame()
+                return _REVIEWS_CACHE
         if df.empty or (hasattr(df, "columns") and len(df.columns) == 0):
             sample_path = base_dir / "data" / "amazon_reviews_sample.csv"
             if sample_path.exists():
                 try:
                     df = pd.read_csv(sample_path)
-                    if not df.empty and len(df.columns) >= 3:
-                        pass  # use sample, fall through
-                    else:
-                        _LOAD_ERROR = "data/amazon_reviews.csv is empty. Add 1–3★ reviews with columns: Rating, Review Title, Review Text."
-                        _REVIEWS_CACHE = pd.DataFrame()
-                        return _REVIEWS_CACHE
                 except Exception:
-                    _LOAD_ERROR = "data/amazon_reviews.csv is empty. Add 1–3★ reviews with columns: Rating, Review Title, Review Text."
-                    _REVIEWS_CACHE = pd.DataFrame()
-                    return _REVIEWS_CACHE
+                    df = _EMBEDDED_REVIEWS.copy()
             else:
+                df = _EMBEDDED_REVIEWS.copy()
+            if df.empty or len(df.columns) < 3:
                 _LOAD_ERROR = "data/amazon_reviews.csv is empty. Add 1–3★ reviews with columns: Rating, Review Title, Review Text."
                 _REVIEWS_CACHE = pd.DataFrame()
                 return _REVIEWS_CACHE
