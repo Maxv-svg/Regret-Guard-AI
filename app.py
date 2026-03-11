@@ -226,6 +226,8 @@ if "rag_regret_probability" not in st.session_state:
     st.session_state.rag_counter_argument = ""
     st.session_state.rag_raw_reviews = []
     st.session_state.rag_matched_query = ""
+    st.session_state.rag_rating_band = "1-2"  # "1-2", "1-3", or "2-3"
+    st.session_state.rag_empty_reason = None
 
 # Phone frame wrapper (all views live inside)
 st.markdown('<div class="phone-shell">', unsafe_allow_html=True)
@@ -356,7 +358,7 @@ elif st.session_state.ui_state == "payment_input":
             "Which product are you about to buy? (for review lookup)",
             value=item["name"],
             key="product_query",
-            help="Words here are matched against 1–2★ Amazon reviews. Use product type or name, e.g. 'Wireless Earbuds' or 'earbuds' – the default is already set for this.",
+            help="Words here are matched against 1–3★ Amazon reviews (1–2★ preferred; 2–3★ used when scarce). Use product type or name, e.g. 'Wireless Earbuds' or 'earbuds'.",
         )
         st.caption(
             "Tip: Keep the default **Wireless Earbuds** (or type e.g. *earbuds*, *earphones*) so the AI can include real Amazon review evidence in the regret score."
@@ -420,10 +422,14 @@ elif st.session_state.ui_state == "payment_input":
             st.session_state.rag_counter_argument = ""
             st.session_state.rag_raw_reviews = []
             st.session_state.rag_matched_query = ""
+            st.session_state.rag_rating_band = "1-2"
+            st.session_state.rag_empty_reason = None
 
             try:
                 insights = get_product_insights(product_query)
                 complaints_text = insights.get("complaints_text", "")
+                if not complaints_text.strip():
+                    st.session_state.rag_empty_reason = insights.get("empty_reason")
                 if complaints_text.strip():
                     chain_result = run_regret_chain(
                         product_query=insights.get("matched_query", product_query),
@@ -445,6 +451,7 @@ elif st.session_state.ui_state == "payment_input":
                     st.session_state.rag_matched_query = insights.get(
                         "matched_query", product_query
                     )
+                    st.session_state.rag_rating_band = insights.get("rating_band") or "1-2"
             except Exception as e:
                 # Fail gracefully – keep the core ML guard working even if RAG fails.
                 st.warning(
@@ -510,11 +517,20 @@ elif st.session_state.ui_state == "ai_evaluator":
             "Regret Guard recommends waiting before buying."
         )
 
+    # Rating band label for RAG copy (1-2, 1-3, or 2-3)
+    _band = getattr(st.session_state, "rag_rating_band", "1-2")
+    _band_short = "2–3★" if _band == "2-3" else ("1–3★" if _band == "1-3" else "1–2★")
+    _band_long = (
+        "2–3★" if _band == "2-3" else
+        "1–3★ (2–3★ used where 1–2★ was scarce)" if _band == "1-3" else
+        "1–2★"
+    )
+
     # Build reasoning text: ML factors + optional Cohere/review evidence
     reasoning_ml = f"The behavioral model pays most attention to: <b>{top_features}</b>."
     if st.session_state.rag_regret_probability is not None and st.session_state.rag_core_failure_points:
         reasoning_reviews = (
-            " From real 1–2★ Amazon reviews, the main concerns are: "
+            f" From real {_band_short} Amazon reviews, the main concerns are: "
             + st.session_state.rag_core_failure_points.strip()[:300]
             + ("…" if len(st.session_state.rag_core_failure_points.strip()) > 300 else "")
             + f" The evidence-based regret estimate from these reviews is <b>{st.session_state.rag_regret_probability:.1f}%</b>. "
@@ -555,15 +571,20 @@ elif st.session_state.ui_state == "ai_evaluator":
         unsafe_allow_html=True,
     )
 
-    # --- RAG‑light visualisation ---
+    # --- RAG‑light visualisation (or why it's missing) ---
+    if getattr(st.session_state, "rag_empty_reason", None):
+        st.info(
+            "**Review evidence not loaded.** "
+            + str(st.session_state.rag_empty_reason)
+        )
     if st.session_state.rag_regret_probability is not None:
         st.markdown(
             "<div class='step-label' style='margin-top:12px;'>Evidence from similar buyers</div>",
             unsafe_allow_html=True,
         )
         st.markdown(
-            "*Regret Guard uses real, anonymised **1–2 star reviews** from the Amazon dataset: "
-            "buyers who were unhappy with their purchase or experience. The AI summarises common "
+            f"*Regret Guard uses real, anonymised **{_band_long}** reviews from the Amazon dataset: "
+            "buyers who were unhappy or mixed. The AI summarises common "
             "complaints and weighs them against your reason to buy.*"
         )
         st.write(
@@ -586,12 +607,12 @@ elif st.session_state.ui_state == "ai_evaluator":
 
         if st.session_state.rag_raw_reviews:
             st.markdown(
-                "**Real‑World Evidence:** Below are the **1–2 star** review texts from the "
+                f"**Real‑World Evidence:** Below are the **{_band_short}** review texts from the "
                 "Amazon dataset that were used for this assessment. They show what went wrong "
                 "for other buyers."
             )
             with st.expander(
-                f"Show {len(st.session_state.rag_raw_reviews)} raw 1–2★ reviews "
+                f"Show {len(st.session_state.rag_raw_reviews)} raw {_band_short} reviews "
                 f"for “{st.session_state.rag_matched_query or 'this purchase'}”"
             ):
                 for i, review in enumerate(st.session_state.rag_raw_reviews, start=1):

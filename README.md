@@ -45,12 +45,12 @@ The app combines **two** sources of “regret” signal:
 
 ### 2. RAG-light chain (Cohere + real reviews)
 
-- **Data:** `data/amazon_reviews.csv` (1–2★ reviews).
-- **Retrieval:** `utils/data_processor.py` → `get_product_insights(product_query)` loads the CSV, keeps 1–2★ reviews, keyword-matches the product query, ranks by “most descriptive” (length), and returns the top 5 complaints as text + raw review list.
+- **Data:** `data/amazon_reviews.csv` (or `data/amazon_Reviews.csv`) with columns **Rating**, **Review Title**, **Review Text**. Reviews with rating 1–3★ are used: the app **prefers 1–2★** (strongest regret signal); if there are fewer than 3 such reviews, it also **includes 3★** for more data (1–3★ band). If there are no 1–2★ at all, it falls back to **2–3★** so evidence can still be shown.
+- **Retrieval:** `utils/data_processor.py` → `get_product_insights(product_query)` loads the CSV, selects the rating band (1–2★, 1–3★, or 2–3★) as above, keyword-matches the product query, ranks by “most descriptive” (length), and returns the top 5 complaints as text + raw review list.
 - **LLM chain:** `utils/llm_chains.py` → `run_regret_chain(product_query, user_reason, complaints_text)`:
   - **Step 1 (Analyst):** Cohere summarises the complaints into “Core Failure Points”.
   - **Step 2 (Negotiator):** Cohere takes your “reason to buy” + those failure points and returns a **Regret Probability (0–100)** and a **counter-argument** in Regret Guard’s voice (few-shot prompted).
-- **In the UI:** If the RAG pipeline runs successfully, the AI evaluator screen also shows an evidence-based regret % (with a progress bar), core failure points, the counter-argument, and a “Real-World Evidence” expander with the raw 1–2★ review text.
+- **In the UI:** If the RAG pipeline runs successfully, the AI evaluator screen shows an evidence-based regret % (with a progress bar), core failure points, the counter-argument, and a “Real-World Evidence” expander with the raw review texts. The UI indicates which band was used (e.g. “1–2★”, “1–3★ (2–3★ used where 1–2★ was scarce)”, or “2–3★”).
 
 **Summary:** The **main number and bands** come from the Random Forest on transaction data; the **“Evidence from similar buyers”** block (and its score) comes from the Cohere RAG chain on Amazon reviews. Both can be shown together.
 
@@ -60,7 +60,8 @@ The app combines **two** sources of “regret” signal:
 
 1. Install: `pip install -r requirements.txt`
 2. Train the ML model (once): `python train_model.py` (requires `data/transaction_history.csv`).
-3. Set `COHERE_API_KEY` in `.streamlit/secrets.toml` or your environment (optional; needed for the RAG “Evidence from similar buyers” section).
-4. Run: `streamlit run app.py`
+3. Add `data/amazon_reviews.csv` (or `amazon_Reviews.csv`) with columns **Rating**, **Review Title**, **Review Text** and rows with rating 1–3★ (1–2★ preferred; 2–3★ used when 1–2★ is scarce).
+4. Set `COHERE_API_KEY` in `.streamlit/secrets.toml` or your environment (optional; needed for the RAG “Evidence from similar buyers” section).
+5. Run: `streamlit run app.py`
 
 ---

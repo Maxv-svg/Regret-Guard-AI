@@ -6,33 +6,84 @@ import pandas as pd
 
 
 _REVIEWS_CACHE: Optional[pd.DataFrame] = None
+_LOAD_ERROR: Optional[str] = None  # Hint when file missing/empty/wrong shape
+
+
+def _find_reviews_csv(base_dir: Path) -> Path:
+    """Try amazon_reviews.csv then amazon_Reviews.csv (case variants)."""
+    for name in ("amazon_reviews.csv", "amazon_Reviews.csv"):
+        p = base_dir / "data" / name
+        if p.exists():
+            return p
+    return base_dir / "data" / "amazon_reviews.csv"  # raise on this if not found
+
+
+def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Map common column names to Rating, Review Title, Review Text."""
+    col_map = {}
+    for col in df.columns:
+        c = str(col).strip().lower()
+        if c in ("rating", "overall", "stars"):
+            col_map[col] = "Rating"
+        elif c in ("review title", "review_title", "title", "summary", "summary_"):
+            col_map[col] = "Review Title"
+        elif c in ("review text", "review_text", "body", "review_body", "content", "review"):
+            col_map[col] = "Review Text"
+    if col_map:
+        df = df.rename(columns=col_map)
+    return df
 
 
 def _load_reviews() -> pd.DataFrame:
     """
     Lazy-load and cache the amazon_reviews.csv file.
+    Tries amazon_reviews.csv and amazon_Reviews.csv. Handles empty file and column variants.
     """
-    global _REVIEWS_CACHE
+    global _REVIEWS_CACHE, _LOAD_ERROR
+    _LOAD_ERROR = None
 
-    if _REVIEWS_CACHE is None:
-        base_dir = Path(__file__).resolve().parents[1]
-        csv_path = base_dir / "data" / "amazon_reviews.csv"
+    if _REVIEWS_CACHE is not None:
+        return _REVIEWS_CACHE
+
+    base_dir = Path(__file__).resolve().parents[1]
+    csv_path = _find_reviews_csv(base_dir)
+    if not csv_path.exists():
+        _LOAD_ERROR = "File not found: data/amazon_reviews.csv (or data/amazon_Reviews.csv). Add a CSV with columns: Rating, Review Title, Review Text."
+        _REVIEWS_CACHE = pd.DataFrame()
+        return _REVIEWS_CACHE
+
+    try:
         df = pd.read_csv(csv_path)
+    except Exception as e:
+        _LOAD_ERROR = f"Could not read CSV: {e}"
+        _REVIEWS_CACHE = pd.DataFrame()
+        return _REVIEWS_CACHE
 
-        # Extract numeric rating from strings like "Rated 1 out of 5 stars"
-        df["rating_value"] = (
-            df["Rating"]
-            .astype(str)
-            .str.extract(r"Rated\s+(\d)\s+out", expand=False)
-            .astype(float)
-        )
+    if df.empty or len(df) == 0:
+        _LOAD_ERROR = "data/amazon_reviews.csv is empty. Add 1–3★ reviews with columns: Rating, Review Title, Review Text."
+        _REVIEWS_CACHE = pd.DataFrame()
+        return _REVIEWS_CACHE
 
-        # Normalised helper columns for simple keyword search
-        df["review_title_lower"] = df["Review Title"].astype(str).str.lower()
-        df["review_text_lower"] = df["Review Text"].astype(str).str.lower()
+    df = _normalize_columns(df)
+    for required in ("Rating", "Review Title", "Review Text"):
+        if required not in df.columns:
+            _LOAD_ERROR = f"CSV must have columns: Rating, Review Title, Review Text. Found: {list(df.columns)}."
+            _REVIEWS_CACHE = pd.DataFrame()
+            return _REVIEWS_CACHE
 
-        _REVIEWS_CACHE = df
+    # Rating: numeric 1–5 or "Rated X out of 5 stars"
+    raw = df["Rating"].astype(str)
+    numeric = raw.str.extract(r"Rated\s+(\d)\s+out", expand=False)
+    if numeric.notna().any():
+        df["rating_value"] = numeric.astype(float)
+    else:
+        # Try plain numbers
+        df["rating_value"] = pd.to_numeric(raw.replace("", float("nan")), errors="coerce")
+    df["rating_value"] = df["rating_value"].clip(1, 5)
 
+    df["review_title_lower"] = df["Review Title"].astype(str).str.lower()
+    df["review_text_lower"] = df["Review Text"].astype(str).str.lower()
+    _REVIEWS_CACHE = df
     return _REVIEWS_CACHE
 
 
@@ -45,41 +96,66 @@ def _score_match(row: pd.Series, query_tokens: List[str]) -> int:
     return sum(1 for token in query_tokens if token in haystack)
 
 
-def get_product_insights(product_query: str, max_reviews: int = 5) -> Dict[str, object]:
+def get_product_insights(
+    product_query: str, max_reviews: int = 5, min_low_rating_count: int = 3
+) -> Dict[str, object]:
     """
     Retrieve complaint evidence for a given product/query string.
 
     1. Loads amazon_reviews.csv (cached).
-    2. Filters to 1★ and 2★ reviews only.
+    2. Prefers 1–2★ reviews; if there are fewer than min_low_rating_count, also
+       includes 3★ reviews for more data. If there are no 1–2★ at all, uses 2–3★.
     3. Uses simple keyword matching over title + text to find rows
        most related to the `product_query`.
     4. Returns:
        - matched_query: the original query (for display).
        - complaints_text: concatenated string of the most descriptive complaints.
        - raw_reviews: list of individual complaint texts (for "Real‑World Evidence").
+       - rating_band: "1-2", "1-3", or "2-3" (which star band was used).
     """
     query = (product_query or "").strip()
     df = _load_reviews()
+    if df.empty or "rating_value" not in df.columns:
+        reason = _LOAD_ERROR or "No review data loaded. Add data/amazon_reviews.csv with columns: Rating, Review Title, Review Text."
+        return {"matched_query": query, "complaints_text": "", "raw_reviews": [], "empty_reason": reason, "rating_band": None}
 
-    # Only low ratings: 1★ and 2★
-    low_df = df[df["rating_value"].isin([1, 2])].copy()
-    if low_df.empty:
-        return {"matched_query": query, "complaints_text": "", "raw_reviews": []}
+    low_12 = df[df["rating_value"].isin([1.0, 2.0])].copy()
+    mid_23 = df[df["rating_value"].isin([2.0, 3.0])].copy()
+
+    # Prefer 1–2★; if not enough, use 1–3★ (add 3★). If no 1–2★ at all, use 2–3★.
+    if len(low_12) >= min_low_rating_count:
+        use_df = low_12
+        rating_band = "1-2"
+    elif not low_12.empty:
+        # Few 1–2★: add 3★ for more data (1–3★ band)
+        use_df = df[df["rating_value"].isin([1.0, 2.0, 3.0])].copy()
+        rating_band = "1-3"
+    elif not mid_23.empty:
+        use_df = mid_23
+        rating_band = "2-3"
+    else:
+        reason = _LOAD_ERROR or "No 1–2★ or 2–3★ reviews in the file. Add rows with Rating 1, 2, or 3."
+        return {
+            "matched_query": query,
+            "complaints_text": "",
+            "raw_reviews": [],
+            "empty_reason": reason,
+            "rating_band": None,
+        }
 
     if query:
         tokens = [t for t in query.lower().split() if len(t) > 2]
         if tokens:
-            low_df["match_score"] = low_df.apply(_score_match, axis=1, query_tokens=tokens)
-            # Keep rows with at least one token match; fall back to all lows if none
-            matched = low_df[low_df["match_score"] > 0]
+            use_df["match_score"] = use_df.apply(_score_match, axis=1, query_tokens=tokens)
+            matched = use_df[use_df["match_score"] > 0]
             if matched.empty:
-                matched = low_df
+                matched = use_df
         else:
-            matched = low_df
+            matched = use_df
     else:
-        matched = low_df
+        matched = use_df
 
-    # Rank by a simple proxy for "descriptive": length of review text
+    # Rank by match score then by length (most descriptive)
     matched = matched.copy()
     matched["text_len"] = matched["Review Text"].astype(str).str.len()
     matched = matched.sort_values(by=["match_score", "text_len"], ascending=[False, False])
@@ -87,12 +163,13 @@ def get_product_insights(product_query: str, max_reviews: int = 5) -> Dict[str, 
     top = matched.head(max_reviews)
     raw_reviews = top["Review Text"].astype(str).tolist()
 
-    # Concatenate into a single text block for the LLM, with clear separators
     complaints_text = "\n\n---\n\n".join(textwrap.fill(r, width=400) for r in raw_reviews)
 
     return {
         "matched_query": query or "General Amazon experience",
         "complaints_text": complaints_text,
         "raw_reviews": raw_reviews,
+        "empty_reason": None,
+        "rating_band": rating_band,
     }
 
