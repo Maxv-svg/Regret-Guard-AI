@@ -432,6 +432,13 @@ elif st.session_state.ui_state == "payment_input":
                 if not complaints_text.strip():
                     st.session_state.rag_empty_reason = insights.get("empty_reason")
                 if complaints_text.strip():
+                    # Store review data first so we can show it even if the chain fails
+                    st.session_state.rag_raw_reviews = insights.get("raw_reviews", [])
+                    st.session_state.rag_matched_query = insights.get(
+                        "matched_query", product_query
+                    )
+                    st.session_state.rag_rating_band = insights.get("rating_band") or "1-2"
+                    st.session_state.rag_complaints_text = complaints_text  # for fallback snippet
                     chain_result = run_regret_chain(
                         product_query=insights.get("matched_query", product_query),
                         user_reason=user_reason or "No explicit reason provided.",
@@ -446,13 +453,6 @@ elif st.session_state.ui_state == "payment_input":
                     st.session_state.rag_counter_argument = chain_result.get(
                         "counter_argument", ""
                     )
-                    st.session_state.rag_raw_reviews = insights.get(
-                        "raw_reviews", []
-                    )
-                    st.session_state.rag_matched_query = insights.get(
-                        "matched_query", product_query
-                    )
-                    st.session_state.rag_rating_band = insights.get("rating_band") or "1-2"
             except Exception as e:
                 # Fail gracefully – keep the core ML guard working even if RAG fails.
                 st.warning(
@@ -474,10 +474,17 @@ elif st.session_state.ui_state == "ai_evaluator":
     score = st.session_state.last_score
     rag_score = st.session_state.rag_regret_probability
     # When we have both ML and RAG, use a combined score for the "final rating"
+    has_review_data = (
+        getattr(st.session_state, "rag_raw_reviews", None)
+        and len(st.session_state.rag_raw_reviews) > 0
+    )
     if rag_score is not None:
         combined_score = (score + rag_score) / 2.0
         score_for_display = combined_score
         score_source_note = "combined (your behavior + real Amazon reviews)"
+    elif has_review_data:
+        score_for_display = score
+        score_source_note = "your behavior; real review excerpts loaded below"
     else:
         score_for_display = score
         score_source_note = "based on your past data"
@@ -530,8 +537,9 @@ elif st.session_state.ui_state == "ai_evaluator":
     # Build reasoning text: ML factors + optional Cohere/review evidence
     reasoning_ml = f"The behavioral model pays most attention to: <b>{top_features}</b>."
     reasoning_reviews = ""
+    raw_reviews = getattr(st.session_state, "rag_raw_reviews", []) or []
     if st.session_state.rag_regret_probability is not None:
-        # Always include review evidence in the main description when we have a RAG score
+        # Full RAG: include evidence-based % and optional failure points
         parts = []
         if st.session_state.rag_core_failure_points and st.session_state.rag_core_failure_points.strip():
             parts.append(
@@ -545,6 +553,17 @@ elif st.session_state.ui_state == "ai_evaluator":
             "The score above combines this with your behavioral risk."
         )
         reasoning_reviews = " ".join(parts)
+    elif raw_reviews:
+        # No Cohere result but we have review excerpts: show a short snippet in the description
+        first = (raw_reviews[0] or "").strip()
+        snippet = (first[:180] + "…") if len(first) > 180 else first
+        snippet = snippet.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        n = len(raw_reviews)
+        reasoning_reviews = (
+            f" Real {_band_short} review evidence for this product ({n} excerpt{'s' if n != 1 else ''}): "
+            f"<i>\"{snippet}\"</i> "
+            "— see the full excerpts in the section below."
+        )
 
     st.markdown(
         f"""
@@ -612,6 +631,28 @@ elif st.session_state.ui_state == "ai_evaluator":
             st.markdown("**Regret Guard's critical counter‑argument:**")
             st.info(st.session_state.rag_counter_argument)
 
+        if st.session_state.rag_raw_reviews:
+            st.markdown(
+                f"**Real‑World Evidence:** Below are the **{_band_short}** review texts from the "
+                "Amazon dataset that were used for this assessment. They show what went wrong "
+                "for other buyers."
+            )
+            with st.expander(
+                f"Show {len(st.session_state.rag_raw_reviews)} raw {_band_short} reviews "
+                f"for \"{st.session_state.rag_matched_query or 'this purchase'}\""
+            ):
+                for i, review in enumerate(st.session_state.rag_raw_reviews, start=1):
+                    st.markdown(f"**#{i}**  \n{review}")
+    elif raw_reviews:
+        # Review excerpts loaded but no Cohere result: still show the evidence section
+        st.markdown(
+            "<div class='step-label' style='margin-top:12px;'>Evidence from similar buyers</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"*Regret Guard loaded **{len(raw_reviews)}** real {_band_short} review excerpt(s) from the Amazon dataset. "
+            "Set **COHERE_API_KEY** for an AI-powered regret estimate from these reviews.*"
+        )
         if st.session_state.rag_raw_reviews:
             st.markdown(
                 f"**Real‑World Evidence:** Below are the **{_band_short}** review texts from the "
