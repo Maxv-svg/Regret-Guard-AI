@@ -3,6 +3,9 @@ import joblib
 import pandas as pd
 import time
 
+from utils.data_processor import get_product_insights
+from utils.llm_chains import run_regret_chain
+
 # 1. NATIVE MOBILE APP STYLING (The "Revolut" Skin)
 st.set_page_config(page_title="Regret Guard • Revolut", layout="centered", initial_sidebar_state="collapsed")
 
@@ -217,6 +220,12 @@ if "current_item" not in st.session_state:
     }
 if "last_outcome" not in st.session_state:
     st.session_state.last_outcome = None
+if "rag_regret_probability" not in st.session_state:
+    st.session_state.rag_regret_probability = None
+    st.session_state.rag_core_failure_points = ""
+    st.session_state.rag_counter_argument = ""
+    st.session_state.rag_raw_reviews = []
+    st.session_state.rag_matched_query = ""
 
 # Phone frame wrapper (all views live inside)
 st.markdown('<div class="phone-shell">', unsafe_allow_html=True)
@@ -338,6 +347,22 @@ elif st.session_state.ui_state == "payment_input":
             unsafe_allow_html=True,
         )
 
+        # Lightweight RAG input section
+        st.markdown(
+            "<div class='step-label' style='margin-top:10px; margin-bottom:2px;'>Product context</div>",
+            unsafe_allow_html=True,
+        )
+        product_query = st.text_input(
+            "Which product are you about to buy? (for review lookup)",
+            value=item["name"],
+            key="product_query",
+        )
+        user_reason = st.text_area(
+            "Why do you want to buy this?",
+            placeholder="Be honest – what is the main reason you want this purchase right now?",
+            key="user_reason",
+        )
+
         st.divider()
         st.markdown(
             "<div class='step-label' style='margin-bottom:2px;'>Step 2 · Your current state</div>",
@@ -382,6 +407,44 @@ elif st.session_state.ui_state == "payment_input":
                 columns=features,
             )
             score = model.predict(inputs)[0]
+
+            # --- RAG‑light pipeline: fetch real complaints and run the LLM chain ---
+            st.session_state.rag_regret_probability = None
+            st.session_state.rag_core_failure_points = ""
+            st.session_state.rag_counter_argument = ""
+            st.session_state.rag_raw_reviews = []
+            st.session_state.rag_matched_query = ""
+
+            try:
+                insights = get_product_insights(product_query)
+                complaints_text = insights.get("complaints_text", "")
+                if complaints_text.strip():
+                    chain_result = run_regret_chain(
+                        product_query=insights.get("matched_query", product_query),
+                        user_reason=user_reason or "No explicit reason provided.",
+                        complaints_text=complaints_text,
+                    )
+                    st.session_state.rag_regret_probability = chain_result.get(
+                        "regret_probability"
+                    )
+                    st.session_state.rag_core_failure_points = chain_result.get(
+                        "core_failure_points", ""
+                    )
+                    st.session_state.rag_counter_argument = chain_result.get(
+                        "counter_argument", ""
+                    )
+                    st.session_state.rag_raw_reviews = insights.get(
+                        "raw_reviews", []
+                    )
+                    st.session_state.rag_matched_query = insights.get(
+                        "matched_query", product_query
+                    )
+            except Exception as e:
+                # Fail gracefully – keep the core ML guard working even if RAG fails.
+                st.warning(
+                    f"Regret Guard evidence lookup is temporarily unavailable ({e}). "
+                    "Core risk score is still shown below."
+                )
 
             st.session_state.last_score = score
             st.session_state.last_price = price
@@ -462,6 +525,39 @@ elif st.session_state.ui_state == "ai_evaluator":
         """,
         unsafe_allow_html=True,
     )
+
+    # --- RAG‑light visualisation ---
+    if st.session_state.rag_regret_probability is not None:
+        st.markdown(
+            "<div class='step-label' style='margin-top:12px;'>Evidence from similar buyers</div>",
+            unsafe_allow_html=True,
+        )
+        st.write(
+            "Based on real 1★–2★ Amazon reviews for similar purchases, "
+            f"Regret Guard estimates a **{st.session_state.rag_regret_probability:.1f}%** "
+            "chance that you would feel buyer's remorse."
+        )
+        progress = min(
+            max(st.session_state.rag_regret_probability / 100.0, 0.0), 1.0
+        )
+        st.progress(progress, text="Evidence‑based regret probability")
+
+        if st.session_state.rag_core_failure_points:
+            st.markdown("**Core failure points from real reviews:**")
+            st.markdown(st.session_state.rag_core_failure_points)
+
+        if st.session_state.rag_counter_argument:
+            st.markdown("**Regret Guard's critical counter‑argument:**")
+            st.info(st.session_state.rag_counter_argument)
+
+        if st.session_state.rag_raw_reviews:
+            st.markdown("**Real‑World Evidence (1–2★ complaints):**")
+            with st.expander(
+                f"See {len(st.session_state.rag_raw_reviews)} raw complaints "
+                f"for “{st.session_state.rag_matched_query or 'this purchase'}”"
+            ):
+                for i, review in enumerate(st.session_state.rag_raw_reviews, start=1):
+                    st.markdown(f"**#{i}**  \n{review}")
 
     # Explicit decision: Continue vs move to vault, regardless of risk level
     st.markdown(
