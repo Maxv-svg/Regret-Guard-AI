@@ -378,7 +378,9 @@ elif st.session_state.ui_state == "payment_input":
         )
         sleep = st.slider("Sleep last night (hours)", 3.0, 11.0, 7.0)
         risk = st.select_slider(
-            "Merchant / category risk", options=[0.05, 0.15, 0.30, 0.55], value=item["category_risk"]
+            "Merchant / category risk",
+            options=[0.05, 0.15, 0.25, 0.30, 0.55],
+            value=item["category_risk"] if item["category_risk"] in [0.05, 0.15, 0.25, 0.30, 0.55] else 0.25,
         )
         st.markdown(
             "<p style='margin-top:10px; margin-bottom:2px; color:#f9fafb; font-size:14px; font-weight:600;'>"
